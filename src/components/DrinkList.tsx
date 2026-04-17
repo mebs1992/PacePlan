@@ -1,6 +1,7 @@
 import { Card } from '@/components/ui/Card';
 import { formatRelative } from '@/lib/time';
 import { X } from 'lucide-react';
+import { motion, AnimatePresence } from 'framer-motion';
 import type { DrinkEntry } from '@/types';
 
 type Props = {
@@ -15,7 +16,7 @@ export function DrinkList({ drinks, now, onRemove }: Props) {
   return (
     <Card>
       <div className="flex items-baseline justify-between mb-2">
-        <h2 className="text-sm font-semibold text-ink-muted uppercase tracking-wider">
+        <h2 className="text-[11px] font-semibold text-ink-muted uppercase tracking-[0.2em]">
           Drinks
         </h2>
         <div className="text-xs text-ink-muted tabular-nums">
@@ -23,29 +24,36 @@ export function DrinkList({ drinks, now, onRemove }: Props) {
         </div>
       </div>
       <ul className="space-y-1">
-        {drinks
-          .slice()
-          .reverse()
-          .map((d) => (
-            <li
-              key={d.id}
-              className="flex items-center justify-between py-2 border-b border-bg-elev/50 last:border-0"
-            >
-              <div className="flex flex-col">
-                <span className="text-ink text-sm">{d.label}</span>
-                <span className="text-xs text-ink-muted tabular-nums">
-                  {d.standardDrinks.toFixed(1)} std · {formatRelative(d.at, now)}
-                </span>
-              </div>
-              <button
-                onClick={() => onRemove(d.id)}
-                className="text-ink-muted hover:text-risk-red p-2 min-tap"
-                aria-label="Remove drink"
+        <AnimatePresence initial={false}>
+          {drinks
+            .slice()
+            .reverse()
+            .map((d) => (
+              <motion.li
+                key={d.id}
+                layout
+                initial={{ opacity: 0, x: -8 }}
+                animate={{ opacity: 1, x: 0 }}
+                exit={{ opacity: 0, x: 16, height: 0 }}
+                transition={{ duration: 0.2 }}
+                className="flex items-center justify-between py-2 border-b border-white/5 last:border-0"
               >
-                <X className="h-4 w-4" />
-              </button>
-            </li>
-          ))}
+                <div className="flex flex-col">
+                  <span className="text-ink text-sm font-medium">{d.label}</span>
+                  <span className="text-[11px] text-ink-muted tabular-nums">
+                    {d.standardDrinks.toFixed(1)} std · {formatRelative(d.at, now)}
+                  </span>
+                </div>
+                <button
+                  onClick={() => onRemove(d.id)}
+                  className="text-ink-dim hover:text-risk-red p-2 min-tap transition"
+                  aria-label="Remove drink"
+                >
+                  <X className="h-4 w-4" />
+                </button>
+              </motion.li>
+            ))}
+        </AnimatePresence>
       </ul>
     </Card>
   );

@@ -9,32 +9,29 @@ export function SettingsPage() {
   const clearHistory = useSession((s) => s.clearHistory);
 
   return (
-    <div className="max-w-md mx-auto p-4 pb-24 space-y-3">
-      <header className="my-4">
-        <h1 className="text-2xl font-bold text-ink">Settings</h1>
+    <div className="max-w-md mx-auto p-4 pb-28 space-y-3">
+      <header className="mt-6 mb-2">
+        <h1 className="text-3xl font-bold text-ink">Settings</h1>
       </header>
 
       <Card>
-        <h2 className="text-sm font-semibold text-ink-muted uppercase tracking-wider mb-2">
+        <h2 className="text-[11px] font-semibold text-ink-muted uppercase tracking-[0.2em] mb-3">
           Profile
         </h2>
         {profile ? (
-          <ul className="text-ink text-sm space-y-1">
-            <li>
-              <span className="text-ink-muted">Name:</span> {profile.name}
-            </li>
-            <li>
-              <span className="text-ink-muted">Sex:</span> {profile.sex}
-            </li>
-            <li>
-              <span className="text-ink-muted">Age:</span> {profile.age}
-            </li>
-            <li>
-              <span className="text-ink-muted">Height:</span> {profile.heightCm} cm
-            </li>
-            <li>
-              <span className="text-ink-muted">Weight:</span> {profile.weightKg} kg
-            </li>
+          <ul className="text-ink text-sm space-y-2">
+            {[
+              ['Name', profile.name],
+              ['Sex', profile.sex],
+              ['Age', String(profile.age)],
+              ['Height', `${profile.heightCm} cm`],
+              ['Weight', `${profile.weightKg} kg`],
+            ].map(([k, v]) => (
+              <li key={k} className="flex items-center justify-between">
+                <span className="text-ink-muted">{k}</span>
+                <span className="capitalize">{v}</span>
+              </li>
+            ))}
           </ul>
         ) : (
           <p className="text-ink-muted text-sm">No profile.</p>
@@ -42,7 +39,7 @@ export function SettingsPage() {
       </Card>
 
       <Card>
-        <h2 className="text-sm font-semibold text-ink-muted uppercase tracking-wider mb-2">
+        <h2 className="text-[11px] font-semibold text-ink-muted uppercase tracking-[0.2em] mb-3">
           About
         </h2>
         <p className="text-ink-muted text-sm leading-relaxed">
@@ -51,29 +48,26 @@ export function SettingsPage() {
           (Australia). Estimates are approximate and not a substitute for sober
           judgment.
         </p>
-        <p className="text-ink-muted text-sm mt-2">
-          Need help?{' '}
+        <div className="mt-3 flex flex-wrap gap-2">
           <a
             href="tel:131114"
-            className="text-accent underline"
-            aria-label="Call Lifeline 13 11 14"
+            className="px-3 py-1.5 rounded-lg bg-white/5 border border-white/10 text-ink text-sm"
           >
             Lifeline 13 11 14
-          </a>{' '}
-          ·{' '}
+          </a>
           <a
             href="https://drinkwise.org.au/"
             target="_blank"
             rel="noreferrer"
-            className="text-accent underline"
+            className="px-3 py-1.5 rounded-lg bg-white/5 border border-white/10 text-ink text-sm"
           >
             DrinkWise.org.au
           </a>
-        </p>
+        </div>
       </Card>
 
       <Card>
-        <h2 className="text-sm font-semibold text-ink-muted uppercase tracking-wider mb-2">
+        <h2 className="text-[11px] font-semibold text-ink-muted uppercase tracking-[0.2em] mb-3">
           Data
         </h2>
         <div className="space-y-2">
