@@ -28,3 +28,21 @@ export function formatDate(ms: number): string {
     month: 'short',
   });
 }
+
+function startOfDay(ms: number): number {
+  const d = new Date(ms);
+  d.setHours(0, 0, 0, 0);
+  return d.getTime();
+}
+
+export function dayLabel(ms: number, nowMs: number): string {
+  const dayDiff = Math.round((startOfDay(ms) - startOfDay(nowMs)) / 86_400_000);
+  if (dayDiff === 0) return 'today';
+  if (dayDiff === 1) return 'tomorrow';
+  if (dayDiff === -1) return 'yesterday';
+  return new Date(ms).toLocaleDateString([], { weekday: 'short' });
+}
+
+export function formatClockWithDay(ms: number, nowMs: number): string {
+  return `${formatClock(ms)} ${dayLabel(ms, nowMs)}`;
+}

@@ -16,9 +16,11 @@ type SessionState = {
   active: Session | null;
   history: Session[];
   now: number;
-  startSession: (expectedHours: number) => void;
+  startSession: (expectedHours: number, opts?: { wakeAtMs?: number; planToDrive?: boolean }) => void;
   endSession: (peakBac: number) => void;
   setExpectedHours: (h: number) => void;
+  setWakeAt: (ms: number | undefined) => void;
+  setPlanToDrive: (v: boolean) => void;
   addDrink: (input: { type: DrinkType; label: string; standardDrinks: number }) => void;
   removeDrink: (id: string) => void;
   addFood: (size: FoodSize) => void;
@@ -36,7 +38,7 @@ export const useSession = create<SessionState>()(
       history: [],
       now: Date.now(),
 
-      startSession: (expectedHours) => {
+      startSession: (expectedHours, opts) => {
         const session: Session = {
           id: nanoid(),
           startedAt: Date.now(),
@@ -44,6 +46,8 @@ export const useSession = create<SessionState>()(
           drinks: [],
           food: [],
           water: [],
+          wakeAtMs: opts?.wakeAtMs,
+          planToDrive: opts?.planToDrive ?? false,
         };
         set({ active: session, now: Date.now() });
       },
@@ -60,6 +64,18 @@ export const useSession = create<SessionState>()(
         const { active } = get();
         if (!active) return;
         set({ active: { ...active, expectedHours: h } });
+      },
+
+      setWakeAt: (ms) => {
+        const { active } = get();
+        if (!active) return;
+        set({ active: { ...active, wakeAtMs: ms } });
+      },
+
+      setPlanToDrive: (v) => {
+        const { active } = get();
+        if (!active) return;
+        set({ active: { ...active, planToDrive: v } });
       },
 
       addDrink: ({ type, label, standardDrinks }) => {
