@@ -76,7 +76,6 @@ export function SessionPage() {
   const sober = soberAtMs(inputs);
   const sessionEndsAt = active.startedAt + active.expectedHours * 60 * 60 * 1000;
   const cutoff = recommendCutoff(inputs, sessionEndsAt);
-  const remaining = suggestedDrinksRemaining(inputs, sessionEndsAt);
   const behind = waterBehind(active.drinks, active.water.length);
   const deficit = waterDeficit(active.drinks, active.water.length);
   const planToDrive = active.planToDrive ?? false;
@@ -99,6 +98,7 @@ export function SessionPage() {
   const hangoverDrinksLeft = wakeAtMs
     ? drinksUntilHangover(inputs, sessionEndsAt, wakeAtMs)
     : null;
+  const legalDrinksLeft = suggestedDrinksRemaining(inputs, sessionEndsAt, 1.4, 0.045);
 
   return (
     <div className="max-w-md mx-auto p-4 pb-28">
@@ -148,12 +148,21 @@ export function SessionPage() {
       )}
 
       <div className="grid grid-cols-2 gap-2 mt-4">
-        <StatChip
-          label="Drinks left"
-          value={remaining.toString()}
-          sub="at this pace"
-          accent="from-accent/20 to-accent/5"
-        />
+        {planToDrive ? (
+          <StatChip
+            label="Drinks left"
+            value={legalDrinksLeft.toString()}
+            sub="under 0.05 BAC"
+            accent="from-accent/20 to-accent/5"
+          />
+        ) : (
+          <StatChip
+            label="Peak tonight"
+            value={`${sessionPeak.toFixed(3)}%`}
+            sub="projected max BAC"
+            accent="from-accent/20 to-accent/5"
+          />
+        )}
         <StatChip
           label="Sober by"
           value={sober ? formatClockWithDay(sober, now) : '—'}

@@ -75,7 +75,9 @@ export function HangoverCard({
             {drinksLeft === null ? '—' : drinksLeft}
           </div>
           <div className="text-[11px] text-ink-dim mt-0.5">
-            {wakeAtMs ? 'before hangover at wake' : 'set a wake time'}
+            {wakeAtMs
+              ? 'before hangover · ~1.4 std each'
+              : 'set a wake time'}
           </div>
         </div>
         <div className="rounded-xl p-3 bg-black/20 border border-white/5">
