@@ -191,13 +191,14 @@ export function recommendCutoff(
 export function suggestedDrinksRemaining(
   inputs: BacInputs,
   sessionEndsAt: number,
-  averageDrinkSize: number = 1.4
+  averageDrinkSize: number = 1.4,
+  peakCap: number = TARGET_PEAK_BAC
 ): number {
   let count = 0;
   const drinks = [...inputs.drinks];
   const remainingMs = Math.max(0, sessionEndsAt - inputs.at);
   if (remainingMs === 0) return 0;
-  const slotMs = 30 * 60_000;
+  const slotMs = probeSpacingMs(inputs.drinks);
   const slots = Math.max(1, Math.floor(remainingMs / slotMs));
 
   for (let i = 0; i < slots; i++) {
@@ -219,11 +220,29 @@ export function suggestedDrinksRemaining(
       inputs.at,
       sessionEndsAt + 90 * 60_000
     );
-    if (peak > TARGET_PEAK_BAC) break;
+    if (peak > peakCap) break;
     drinks.push(trial[trial.length - 1]);
     count += 1;
   }
   return count;
+}
+
+/**
+ * Returns a reasonable spacing (ms) between probe drinks for "what-if"
+ * simulations. Uses the user's observed average spacing if we have at least
+ * two logged drinks; otherwise assumes 30 min. Floored at 20 min (binge rate)
+ * and capped at 75 min (very slow) so forecasts stay meaningful.
+ */
+export function probeSpacingMs(drinks: DrinkEntry[]): number {
+  const DEFAULT = 30 * 60_000;
+  const MIN = 20 * 60_000;
+  const MAX = 75 * 60_000;
+  if (drinks.length < 2) return DEFAULT;
+  const sorted = [...drinks].sort((a, b) => a.at - b.at);
+  const span = sorted[sorted.length - 1].at - sorted[0].at;
+  if (span <= 0) return DEFAULT;
+  const observed = span / (sorted.length - 1);
+  return Math.min(MAX, Math.max(MIN, observed));
 }
 
 export function waterBehind(drinks: DrinkEntry[], waterCount: number): boolean {
@@ -279,7 +298,7 @@ export function drinksUntilHangover(
   const drinks = [...inputs.drinks];
   const remainingMs = Math.max(0, sessionEndsAt - inputs.at);
   if (remainingMs === 0) return 0;
-  const slotMs = 30 * 60_000;
+  const slotMs = probeSpacingMs(inputs.drinks);
   const slots = Math.max(1, Math.floor(remainingMs / slotMs));
 
   for (let i = 0; i < slots; i++) {
