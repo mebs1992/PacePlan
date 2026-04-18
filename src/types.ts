@@ -47,6 +47,10 @@ export type Session = {
   food: FoodEntry[];
   water: WaterEntry[];
   peakBac?: number;
+  wakeAtMs?: number;
+  planToDrive?: boolean;
 };
 
 export type RiskLevel = 'green' | 'yellow' | 'red';
+
+export type HangoverRisk = 'low' | 'moderate' | 'high' | 'severe';

@@ -1,11 +1,11 @@
 import type { CutoffResult } from '@/lib/bac';
-import { formatClock } from '@/lib/time';
+import { formatClockWithDay } from '@/lib/time';
 import { AlertTriangle, Clock, CheckCircle2 } from 'lucide-react';
 import { motion } from 'framer-motion';
 
-type Props = { result: CutoffResult };
+type Props = { result: CutoffResult; now: number };
 
-export function CutoffBanner({ result }: Props) {
+export function CutoffBanner({ result, now }: Props) {
   if (result.kind === 'no-drinks') {
     return (
       <motion.div
@@ -50,7 +50,7 @@ export function CutoffBanner({ result }: Props) {
       <Clock className="h-5 w-5 text-risk-yellow mt-0.5" />
       <div>
         <div className="text-sm font-semibold text-risk-yellow">
-          Last drink by {formatClock(result.cutoffAt)}
+          Last drink by {formatClockWithDay(result.cutoffAt, now)}
         </div>
         <div className="text-xs text-ink-muted mt-0.5">
           To stay below the hangover threshold by session end.

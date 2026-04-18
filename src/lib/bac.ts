@@ -1,4 +1,4 @@
-import type { DrinkEntry, FoodEntry, Profile, RiskLevel } from '@/types';
+import type { DrinkEntry, FoodEntry, HangoverRisk, Profile, RiskLevel } from '@/types';
 import { GRAMS_PER_STANDARD_DRINK_AU } from './drinks';
 
 export const BETA_LOW = 0.12;
@@ -228,6 +228,93 @@ export function suggestedDrinksRemaining(
 
 export function waterBehind(drinks: DrinkEntry[], waterCount: number): boolean {
   return drinks.length > 0 && waterCount < Math.max(0, drinks.length - 1);
+}
+
+export const HANGOVER_PEAK_LOW = 0.05;
+export const HANGOVER_PEAK_MODERATE = 0.08;
+export const HANGOVER_PEAK_SEVERE = 0.11;
+export const HANGOVER_WAKE_STILL_DRUNK = 0.02;
+
+export function hangoverRiskFor(
+  peakBac: number,
+  bacAtWake: number,
+  waterBehindGlasses: number
+): HangoverRisk {
+  if (bacAtWake >= HANGOVER_WAKE_STILL_DRUNK) return 'severe';
+  if (peakBac >= HANGOVER_PEAK_SEVERE) return 'severe';
+  let tier: HangoverRisk = 'low';
+  if (peakBac >= HANGOVER_PEAK_MODERATE) tier = 'high';
+  else if (peakBac >= HANGOVER_PEAK_LOW) tier = 'moderate';
+  if (waterBehindGlasses >= 3 && tier === 'low') tier = 'moderate';
+  else if (waterBehindGlasses >= 3 && tier === 'moderate') tier = 'high';
+  return tier;
+}
+
+export function hangoverLabel(risk: HangoverRisk): string {
+  switch (risk) {
+    case 'low':
+      return 'Low hangover risk';
+    case 'moderate':
+      return 'Moderate hangover risk';
+    case 'high':
+      return 'High hangover risk';
+    case 'severe':
+      return 'Rough morning ahead';
+  }
+}
+
+/**
+ * Estimate how many more average drinks you can log before your projected
+ * state at wake time flips to a "hungover" prediction. Considers both peak
+ * BAC during the session and residual BAC at wake time.
+ */
+export function drinksUntilHangover(
+  inputs: BacInputs,
+  sessionEndsAt: number,
+  wakeAtMs: number,
+  averageDrinkSize: number = 1.4,
+  peakCap: number = HANGOVER_PEAK_MODERATE
+): number {
+  let count = 0;
+  const drinks = [...inputs.drinks];
+  const remainingMs = Math.max(0, sessionEndsAt - inputs.at);
+  if (remainingMs === 0) return 0;
+  const slotMs = 30 * 60_000;
+  const slots = Math.max(1, Math.floor(remainingMs / slotMs));
+
+  for (let i = 0; i < slots; i++) {
+    const candidateAt = inputs.at + i * slotMs;
+    const trial: DrinkEntry[] = [
+      ...drinks,
+      {
+        id: `probe-${i}`,
+        type: 'custom',
+        label: 'probe',
+        standardDrinks: averageDrinkSize,
+        at: candidateAt,
+      },
+    ];
+    const peak = peakBacInWindow(
+      inputs.profile,
+      trial,
+      inputs.food,
+      inputs.at,
+      Math.max(sessionEndsAt + 90 * 60_000, wakeAtMs)
+    );
+    const bacAtWake = computeBacAt(
+      { profile: inputs.profile, drinks: trial, food: inputs.food, at: wakeAtMs },
+      BETA_TYPICAL
+    );
+    if (peak > peakCap) break;
+    if (bacAtWake >= HANGOVER_WAKE_STILL_DRUNK) break;
+    drinks.push(trial[trial.length - 1]);
+    count += 1;
+  }
+  return count;
+}
+
+export function waterDeficit(drinks: DrinkEntry[], waterCount: number): number {
+  return Math.max(0, drinks.length - 1 - waterCount);
 }
 
 export function peakBacInWindow(
