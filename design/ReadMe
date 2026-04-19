@@ -1,0 +1,253 @@
+# Handoff: Hangover Buddy — UI Redesign
+
+## Overview
+
+A full UI redesign of the existing **hangover-buddy** Expo/React Native app (tracks alcohol intake and predicts BAC, hangover risk, and driving legality). The redesign reframes the app as a **nocturnal editorial companion** — quiet, calm, a little indulgent — rather than a clinical health tracker. It keeps all existing functionality (profile, session tracking, BAC math, history, morning recap) and adds a more opinionated information hierarchy plus alternative BAC visualizations.
+
+## About the Design Files
+
+The files in this bundle are **design references created in HTML** — a single self-contained interactive prototype (`Hangover Buddy.html`) showing intended look and behavior. **It is not production code to copy directly.**
+
+The task is to **recreate the designs in the existing codebase's environment** (Expo / React Native / TypeScript with the existing `/app`, `/components`, `/lib` structure), using the project's established patterns:
+
+- Existing `src/lib/bac.ts` math must be preserved — the redesign depends on it unchanged.
+- Existing Zustand store shape (`src/state/...`) should be reused or lightly extended.
+- React Native equivalents should replace HTML/CSS: `<View>`, `<Text>`, `<Pressable>`, `Animated` / `react-native-reanimated` for motion, `react-native-svg` for the curve / ring / orb visualizations, Expo Router for navigation.
+- Fonts: use `expo-font` to load **Fraunces** (display serif) and **JetBrains Mono** (labels). Body text can stay system-default or use Inter if already loaded.
+
+## Fidelity
+
+**High-fidelity.** All colors, typography, spacing, and interaction states are intentional and finalized. The developer should recreate the UI pixel-perfectly using React Native primitives. Values in the Design Tokens section below are the source of truth.
+
+## Screens / Views
+
+All screens are shown inside an iOS 402×874 frame in the prototype. In the real app they should fill the device safe area.
+
+### 1. Onboarding (first-launch only)
+
+- **Purpose:** Collect sex / height / weight / age so BAC math can run.
+- **Layout:** Full-bleed dark background. Title ("A quiet companion for loud nights") in Fraunces 40px/1.05, italic highlight on one word. Four compact number/choice rows (sex toggle, height cm, weight kg, age). Footer: "By continuing you accept this is an estimate, not medical advice." + "Begin" CTA.
+- **Behavior:** On submit, writes profile + `acceptedDisclaimerAt` to store; routes to Session screen.
+
+### 2. Session (home)
+
+The primary screen. Two states:
+
+**a) No active session**
+- Header: `TONIGHT · {weekday} {d} {mon}` in mono caps, 11px, 60% opacity
+- Greeting: `Hi, {firstName}.` — Fraunces 44px, italic on the name
+- Primary CTA: **"Start the night"** — pill button, Fraunces 20px italic
+- Secondary link: "Set a wake time first" (optional, opens time picker sheet)
+
+**b) Active session** (the hero)
+- Header row: date in mono + `···` more button (top-right, circular glass pill)
+- Greeting: `Hi, {firstName}.`
+- **BAC readout block:**
+  - Huge numeric: Fraunces **120px / 0.95 line-height**, tabular-nums, current BAC formatted to 3 decimals (e.g., `0.056`)
+  - Unit suffix `% BAC` — JetBrains Mono 10px caps, stacked to the right of the decimal
+  - Sub-row: `range {low}–{high} · β {betaLabel}` — Mono 11px 55% opacity
+- **One-line advisory** (Fraunces italic 18px, accent color) — one of:
+  - `Ease up.` (yellow) when near limit
+  - `Safe to drive.` (green) when BAC = 0
+  - `Do not drive.` (red) when ≥ 0.05
+  - `Rough morning incoming.` (red) when predicted hangover risk high
+- **Visualization** (swappable via Tweaks, default = Night Curve):
+  - **Night Curve**: SVG line chart. X = time from session start → +8h. Y = BAC 0–0.12. Solid line = modeled past; dashed line = predicted future. Gold dot on current point. Vertical "WAKE" marker. Peak annotation ("peak · 0.060") top-right of chart.
+  - **Liquid Orb**: filled circle whose fill height maps to BAC (0 → empty, 0.10 → full). Subtle wave edge animation.
+  - **Tick Ring**: 0→0.12 dial, current value as a gold tick and numeric center.
+  - **Numeric**: oversized decimal only, no chart.
+- **Quick-add row:** three buttons — `+ Drink`, `+ Water`, `+ Food`. Outlined pills, 44px tall. Tapping opens the Tracker Sheet with the corresponding tab selected.
+- **Log list** (collapsed to last 3): each row = time (mono) + label + delta (e.g., `23:14 · Beer 330ml · +0.018`). Tapping a row opens an edit/delete menu.
+- **Footer action:** "End session" — ghost button that opens a confirmation sheet.
+
+### 3. Tracker Sheet (modal, slides up from bottom, ~70% height)
+
+- **Tabs:** Drink / Water / Food — segmented control at top.
+- **Drink tab:** preset chips (Beer 330ml 5%, Wine 150ml 12%, Spirit 40ml 40%, etc.) + "Custom" that reveals volume (ml) and ABV (%) steppers. `ADD` button commits.
+- **Water tab:** glass-count stepper (1–8 glasses), `ADD` button.
+- **Food tab:** three chips — `LIGHT` / `MODERATE` / `HEAVY`. Tap commits.
+- Every commit closes the sheet and updates the hero.
+
+### 4. Confirm End Sheet
+
+- Small centered card: "End the night?"
+- Subtitle: shows predicted wake BAC and hangover risk label.
+- Actions: `Cancel` (ghost) / `End` (primary).
+- On End: sets `endedAt`, computes `peakBac` + `predictedRisk`, moves session into history, and **immediately surfaces the Morning Recap** (simulating "tomorrow morning" for demo purposes — in production this would show on next app-open after wake time).
+
+### 5. Morning Recap (modal overlay)
+
+- Header: `{weekday} MORNING` in mono caps + `⌄ dismiss`
+- **Hangover-risk badge:** Fraunces 60px with risk label (`Mild.` / `Moderate.` / `Rough.`) and colored dot. Uses `bac.hangoverRiskFor(peakBac, wakeBac, waterDeficit)`.
+- Three metric rows:
+  - `Peak BAC` → e.g., `0.082` + contextual note
+  - `Wake BAC` → e.g., `0.012` + driving status (`still impaired` / `clear`)
+  - `Hydration deficit` → `2 glasses short` (based on drinks logged vs water)
+- One-paragraph recap in Fraunces 16px italic, e.g., "Four drinks over five hours, no water after midnight. Give it two more hours before the wheel."
+- CTA: `Got it` — dismisses back to Session (which now shows the empty "Start the night" state).
+
+### 6. History
+
+- Title: `History` — Fraunces 40px
+- Vertical list of past sessions. Each row:
+  - Date stack (left): `SUN` + `19 APR` in mono
+  - Middle: Fraunces 18px label (`A quiet Tuesday.` / `Whiskey night.` — generated from drink count/type)
+  - Right: peak BAC + risk dot
+- Tapping a row opens that session's Morning Recap read-only.
+- Empty state: "Nothing logged yet. Start a session to see it here." centered, italic.
+
+### 7. Settings
+
+- Sections: Profile / Units / Privacy / About
+- Profile: sex, height, weight, age (editable)
+- Units: kg/lb, cm/ft, ml/oz toggles
+- Privacy: "All data stays on this device." (stated plainly; no account)
+- About: BAC disclaimer + link to methodology
+
+## Interactions & Behavior
+
+- **Navigation:** Bottom tab bar with three items (Session / History / Settings). Hidden on onboarding.
+- **Sheet presentation:** Tracker + Confirm End + Morning Recap slide up from the bottom; backdrop fades to 60% black; spring animation (~260ms, ease-out).
+- **BAC recomputation:** The hero screen calls `computeBacAt({profile, drinks, food, at: Date.now()})` on mount and on a 30-second interval while an active session exists.
+- **Night curve:** recompute sampled array only when drinks/food change, not every tick.
+- **Haptics:** light impact on every quick-add commit; medium impact on "End session" confirm.
+- **Advisory color transitions:** cross-fade between green/yellow/red when status changes (200ms).
+- **Log row tap:** opens bottom actionsheet with `Edit time` / `Remove`.
+
+## State Management
+
+Preserve the existing store; the redesign uses the same fields:
+
+```
+profile: { name, sex, heightCm, weightKg, age, acceptedDisclaimerAt } | null
+active: { id, startedAt, wakeAtMs?, drinks: Drink[], water: WaterEntry[], food: FoodLevel, lastBetaLabel } | null
+history: Session[]
+preferences: { palette, density, visual }
+```
+
+New preference fields the UI reads: `visual` ∈ {`curve`,`orb`,`ring`,`numeric`}, `palette` ∈ {`dusk`,`neon`,`paper`}, `density` ∈ {`compact`,`comfortable`,`cozy`}.
+
+## Design Tokens
+
+### Colors — default **Dusk** palette (dark)
+
+| Token | Value | Use |
+|---|---|---|
+| `--bg` | `#0d0c0b` | App background |
+| `--bg-elev` | `#17140f` | Cards, sheets |
+| `--fg` | `#efe7d8` | Primary text |
+| `--fg-dim` | `rgba(239,231,216,0.55)` | Secondary text |
+| `--fg-faint` | `rgba(239,231,216,0.25)` | Dividers, faint labels |
+| `--accent` | `#d4b370` | Amber gold — logo, BAC dot, primary CTA |
+| `--ok` | `#8aa98a` | Safe-to-drive advisory |
+| `--warn` | `#d4b370` | "Ease up" |
+| `--bad` | `#c07468` | "Do not drive", high risk |
+| `--glass` | `rgba(239,231,216,0.06)` | Glass pills |
+| `--border` | `rgba(239,231,216,0.08)` | 1px hairlines |
+
+### Colors — **Paper** palette (light)
+
+| Token | Value |
+|---|---|
+| `--bg` | `#f4efe6` |
+| `--bg-elev` | `#ffffff` |
+| `--fg` | `#1a1613` |
+| `--fg-dim` | `rgba(26,22,19,0.6)` |
+| `--accent` | `#a8814a` |
+| `--ok` | `#4f6b4f` |
+| `--bad` | `#8f4a3e` |
+
+### Colors — **Neon noir** palette
+
+| Token | Value |
+|---|---|
+| `--bg` | `#07070a` |
+| `--fg` | `#e8e8f0` |
+| `--accent` | `oklch(0.78 0.14 300)` (magenta) |
+| `--ok` | `oklch(0.78 0.14 160)` (cyan-green) |
+| `--bad` | `oklch(0.72 0.18 25)` (red-orange) |
+
+### Typography
+
+| Role | Family | Size | Weight | Tracking | Notes |
+|---|---|---|---|---|---|
+| Display / hero BAC | **Fraunces** | 120px | 300 | -0.02em | italic on names, opsz 144 |
+| Screen title | Fraunces | 44px | 400 | -0.015em | italic permitted |
+| Body / advisory | Fraunces | 16–18px | 400 italic | normal | for one-liners |
+| Data / mono | **JetBrains Mono** | 10–13px | 400/500 | 0.08em caps for labels | tabular-nums |
+| Generic body | Inter (optional) | 14–16px | 400–500 | normal | fallback system |
+
+### Spacing scale
+
+`4 · 8 · 12 · 16 · 20 · 24 · 32 · 40 · 56 · 80` (px). Density modes scale this ×0.875 (compact), ×1 (comfortable), ×1.125 (cozy).
+
+### Radii
+
+- Pill buttons / chips: full (`9999px`)
+- Cards / sheets: `20px`
+- Input fields: `12px`
+- Sheet corners (top only): `28px`
+
+### Shadows
+
+- Cards: `0 1px 0 rgba(255,255,255,0.03) inset, 0 24px 40px -24px rgba(0,0,0,0.6)`
+- Floating CTAs: `0 10px 30px -10px rgba(212,179,112,0.35)`
+
+### Motion
+
+- Sheet in/out: 260ms `cubic-bezier(0.22, 1, 0.36, 1)`
+- Advisory color cross-fade: 200ms linear
+- BAC number tween on value change: 400ms ease-out (animate `opacity` + `transform: translateY(-2px)`)
+
+## BAC Math
+
+**Unchanged from the existing repo.** Keep `src/lib/bac.ts` as-is. The redesign consumes these exports:
+
+- `computeBacAt({ profile, drinks, food, at }) → number` — current BAC at instant `at`
+- `peakBacInWindow(profile, drinks, food, startMs, endMs) → number` — for the night curve peak annotation and recap
+- `waterDeficit(drinks, waterGlasses) → number` — for hangover score + recap
+- `hangoverRiskFor(peakBac, wakeBac, waterDeficit) → { score, label }` — drives the morning recap risk badge
+- `drivingStatus(bac) → 'legal' | 'impaired'` — drives the advisory. Threshold 0.05 g/dL (AU).
+
+## Assets
+
+- **Fonts:** Google Fonts — `Fraunces` (opsz 9..144, weights 300–600, italic), `JetBrains Mono` (400/500). Load via `expo-font`.
+- **Icons:** Three custom line icons for the bottom nav (Session = bottle, History = clock, Settings = gear). 1.6px stroke, 18×18 viewBox. SVGs are inline in `Hangover Buddy.html` — copy the paths into `react-native-svg` components.
+- **No other images.** The design deliberately uses no photography or illustration.
+
+## Files
+
+- `Hangover Buddy.html` — self-contained prototype (inline CSS + inline JSX). Open directly in a browser. Components are all inside the file:
+  - `IOSDevice` / iOS status bar (lines ~1–340)
+  - BAC engine port (lines ~340–550)
+  - Store + hooks (lines ~550–760)
+  - `Visualizations` — NightCurve / Orb / Ring / Numeric
+  - `Session` — hero screen
+  - `Scenes` — Tracker/End/Morning sheets
+  - `Pages` — Onboarding / History / Settings
+  - Tweaks panel + `App` root at the bottom
+
+## Screenshots
+
+Visual references for the Session hero across palettes, visualizations, and session states. All in `screenshots/`.
+
+| File | Palette | Visualization | State |
+|---|---|---|---|
+| `01-session-paper-midnight.png` | Paper (light) | Night curve | Mid-night, 4 drinks, BAC 0.056 — "Ease up" |
+| `02-session-paper-overlimit.png` | Paper | Night curve | 6 drinks, over the line — "Do not drive" |
+| `03-session-paper-empty-state.png` | Paper | Night curve | Session just started — no drinks |
+| `04-session-paper-orb.png` | Paper | **Liquid orb** | Midnight state |
+| `05-session-paper-ring.png` | Paper | **Tick ring** | Midnight state |
+| `06-session-paper-numeric.png` | Paper | **Numeric only** | Midnight state |
+| `07-session-dusk-curve.png` | **Dusk (dark)** | Night curve | Midnight state — original default palette |
+| `08-session-neon-noir.png` | **Neon noir** | Night curve | Midnight state — experimental |
+
+The Paper palette is the recommended default based on the user's tweaks. Dusk and Neon are alternatives — don't ship all three unless there's a theme-switcher feature.
+
+## Implementation Notes
+
+1. **Do the BAC engine first.** It's already done in `src/lib/bac.ts`; just verify the redesign imports it.
+2. **Build the Session screen second.** It's the heart of the app and exercises most of the design system.
+3. **Fonts before pixel-tuning.** Fraunces' optical-size + italic is load-bearing for the aesthetic; installing them late means re-measuring everything.
+4. **Simulated states.** The prototype's Tweaks panel has four "sim states" (`dry`, `midnight`, `overlimit`, `real`). These are useful dev-time seeders — port them to a `__DEV__`-only debug menu so QA can reproduce each advisory state without drinking.
+5. **Safe-area & keyboard.** Tracker sheet inputs must handle keyboard avoidance; the iOS frame in the prototype doesn't model this.
