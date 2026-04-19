@@ -25,9 +25,7 @@ export function SessionTimer({ startedAt, expectedHours, now, onChangeHours }: P
     <Card>
       <div className="flex items-center justify-between">
         <div>
-          <div className="text-[11px] uppercase tracking-[0.2em] text-ink-muted">
-            Session
-          </div>
+          <div className="text-base font-semibold text-ink">Session</div>
           <div className="text-ink mt-1 tabular-nums text-sm">
             <span className="font-semibold">{formatDuration(elapsedMs)}</span>
             <span className="text-ink-muted"> elapsed · </span>
@@ -41,10 +39,10 @@ export function SessionTimer({ startedAt, expectedHours, now, onChangeHours }: P
               setDraft(String(expectedHours));
               setEditing(true);
             }}
-            className="flex items-center gap-1.5 text-ink-muted text-sm h-10 px-3 rounded-xl bg-white/5 hover:bg-white/10 border border-white/10 min-tap transition"
+            className="flex items-center gap-1.5 text-ink-muted text-sm h-10 px-3 rounded-xl bg-bg-elev hover:bg-white border border-line min-tap transition"
           >
             <Pencil className="h-3.5 w-3.5" />
-            <span className="tabular-nums">{expectedHours}h</span>
+            <span className="tabular-nums font-semibold">{expectedHours}h</span>
           </button>
         ) : (
           <div className="flex items-center gap-1">
@@ -57,7 +55,7 @@ export function SessionTimer({ startedAt, expectedHours, now, onChangeHours }: P
               step="0.5"
               value={draft}
               onChange={(e) => setDraft(e.target.value)}
-              className="w-20 h-10 px-2 rounded-lg bg-white/10 text-ink text-center border border-accent"
+              className="w-20 h-10 px-2 rounded-lg bg-white text-ink text-center border border-accent focus:outline-none focus:ring-4 focus:ring-accent/15"
             />
             <Button
               size="sm"
@@ -82,7 +80,7 @@ export function SessionTimer({ startedAt, expectedHours, now, onChangeHours }: P
           </div>
         )}
       </div>
-      <div className="mt-3 h-2 bg-white/5 rounded-full overflow-hidden">
+      <div className="mt-3 h-1.5 bg-bg-elev rounded-full overflow-hidden border border-line">
         <motion.div
           className="h-full bg-gradient-to-r from-accent to-accent-violet"
           initial={{ width: 0 }}

@@ -3,28 +3,24 @@
 @tailwind utilities;
 
 :root {
-  color-scheme: dark;
+  color-scheme: light;
   -webkit-tap-highlight-color: transparent;
   -webkit-text-size-adjust: 100%;
 }
 
 html, body, #root {
   height: 100%;
-  background: #05070d;
-  color: #f8fafc;
+  background: #FFF8F1;
+  color: #1A1512;
   font-family: -apple-system, BlinkMacSystemFont, 'Inter', system-ui, 'Segoe UI', Roboto, sans-serif;
   overscroll-behavior-y: none;
   -webkit-font-smoothing: antialiased;
-  font-feature-settings: 'cv11', 'ss01', 'ss03';
+  font-feature-settings: 'cv11', 'ss01';
+  letter-spacing: -0.005em;
 }
 
 body {
-  background:
-    radial-gradient(circle at 0% 0%, rgba(167, 139, 250, 0.15), transparent 40%),
-    radial-gradient(circle at 100% 0%, rgba(34, 211, 238, 0.12), transparent 40%),
-    radial-gradient(circle at 50% 100%, rgba(244, 63, 94, 0.08), transparent 50%),
-    #05070d;
-  background-attachment: fixed;
+  background: #FFF8F1;
   padding-top: env(safe-area-inset-top);
   padding-bottom: env(safe-area-inset-bottom);
   padding-left: env(safe-area-inset-left);
@@ -38,6 +34,7 @@ button {
 
 input, button, select, textarea {
   font: inherit;
+  color: inherit;
 }
 
 input[type="number"]::-webkit-inner-spin-button,
@@ -48,29 +45,36 @@ input[type="number"]::-webkit-outer-spin-button {
 
 input[type="range"] {
   -webkit-appearance: none;
-  height: 6px;
-  background: rgba(148, 163, 184, 0.2);
+  height: 4px;
+  background: #EDE3D6;
   border-radius: 9999px;
   outline: none;
 }
 input[type="range"]::-webkit-slider-thumb {
   -webkit-appearance: none;
   appearance: none;
-  width: 24px;
-  height: 24px;
-  background: #22d3ee;
+  width: 26px;
+  height: 26px;
+  background: #FFFFFF;
+  border: 2px solid #FF5A5F;
   border-radius: 50%;
   cursor: pointer;
-  box-shadow: 0 0 12px rgba(34, 211, 238, 0.6);
+  box-shadow: 0 4px 10px rgba(255, 90, 95, 0.25);
 }
 input[type="range"]::-moz-range-thumb {
-  width: 24px;
-  height: 24px;
-  background: #22d3ee;
+  width: 26px;
+  height: 26px;
+  background: #FFFFFF;
+  border: 2px solid #FF5A5F;
   border-radius: 50%;
   cursor: pointer;
-  border: none;
-  box-shadow: 0 0 12px rgba(34, 211, 238, 0.6);
+  box-shadow: 0 4px 10px rgba(255, 90, 95, 0.25);
+}
+
+input[type="datetime-local"],
+input[type="number"],
+input[type="text"] {
+  color: #1A1512;
 }
 
 @layer utilities {
@@ -78,25 +82,24 @@ input[type="range"]::-moz-range-thumb {
     min-height: 44px;
     min-width: 44px;
   }
-  .glass {
-    background: rgba(30, 41, 59, 0.45);
-    backdrop-filter: blur(20px) saturate(140%);
-    -webkit-backdrop-filter: blur(20px) saturate(140%);
-    border: 1px solid rgba(148, 163, 184, 0.1);
+  .surface {
+    background: #FFFFFF;
+    border: 1px solid #EDE3D6;
   }
-  .glass-strong {
-    background: rgba(15, 23, 42, 0.7);
-    backdrop-filter: blur(28px) saturate(160%);
-    -webkit-backdrop-filter: blur(28px) saturate(160%);
-    border: 1px solid rgba(148, 163, 184, 0.12);
+  .surface-muted {
+    background: #FAF3EA;
+    border: 1px solid #EDE3D6;
   }
-  .gradient-text {
-    background: linear-gradient(135deg, #22d3ee, #a78bfa);
+  .sunset-text {
+    background: linear-gradient(135deg, #FF5A5F 0%, #F4A261 100%);
     -webkit-background-clip: text;
     background-clip: text;
     color: transparent;
   }
   .tabular-nums {
     font-variant-numeric: tabular-nums;
+  }
+  .hairline-t {
+    box-shadow: inset 0 1px 0 #EDE3D6;
   }
 }

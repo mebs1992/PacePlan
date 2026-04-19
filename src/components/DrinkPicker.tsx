@@ -16,13 +16,13 @@ const ICONS: Record<DrinkType, React.ReactNode> = {
   custom: <Plus className="h-5 w-5" />,
 };
 
-const TILE_ACCENT: Record<DrinkType, string> = {
-  mid_beer: 'from-amber-500/30 to-amber-500/5',
-  full_beer: 'from-orange-500/30 to-orange-500/5',
-  wine: 'from-rose-500/30 to-rose-500/5',
-  spirit: 'from-cyan-500/30 to-cyan-500/5',
-  cocktail: 'from-violet-500/30 to-violet-500/5',
-  custom: 'from-slate-500/30 to-slate-500/5',
+const TILE_COLOR: Record<DrinkType, string> = {
+  mid_beer: 'text-amber-600',
+  full_beer: 'text-orange-600',
+  wine: 'text-rose-600',
+  spirit: 'text-sky-700',
+  cocktail: 'text-fuchsia-700',
+  custom: 'text-ink-muted',
 };
 
 type Props = {
@@ -36,15 +36,13 @@ export function DrinkPicker({ onAdd }: Props) {
   return (
     <Card>
       <div className="flex items-center justify-between mb-3">
-        <h2 className="text-[11px] font-semibold text-ink-muted uppercase tracking-[0.2em]">
-          Log a drink
-        </h2>
+        <h2 className="text-base font-semibold text-ink">Log a drink</h2>
       </div>
       <div className="grid grid-cols-3 gap-2">
         {DRINK_PRESETS.map((preset) => (
           <motion.button
             key={preset.type}
-            whileTap={{ scale: 0.92 }}
+            whileTap={{ scale: 0.94 }}
             transition={{ type: 'spring', stiffness: 400, damping: 18 }}
             onClick={() =>
               onAdd({
@@ -53,9 +51,9 @@ export function DrinkPicker({ onAdd }: Props) {
                 standardDrinks: preset.standardDrinks,
               })
             }
-            className={`relative overflow-hidden flex flex-col items-center gap-1.5 p-3 rounded-xl bg-gradient-to-br ${TILE_ACCENT[preset.type]} border border-white/10 min-tap`}
+            className="relative flex flex-col items-center gap-1.5 p-3 rounded-2xl bg-bg-elev border border-line hover:bg-white active:bg-bg-deep min-tap transition"
           >
-            <div className="text-ink">{ICONS[preset.type]}</div>
+            <div className={TILE_COLOR[preset.type]}>{ICONS[preset.type]}</div>
             <div className="text-[13px] font-semibold text-ink leading-tight">
               {preset.label}
             </div>
@@ -68,12 +66,12 @@ export function DrinkPicker({ onAdd }: Props) {
           </motion.button>
         ))}
         <motion.button
-          whileTap={{ scale: 0.92 }}
+          whileTap={{ scale: 0.94 }}
           transition={{ type: 'spring', stiffness: 400, damping: 18 }}
           onClick={() => setShowCustom((v) => !v)}
-          className={`relative overflow-hidden flex flex-col items-center justify-center gap-1.5 p-3 rounded-xl bg-gradient-to-br ${TILE_ACCENT.custom} border border-white/10 min-tap`}
+          className="relative flex flex-col items-center justify-center gap-1.5 p-3 rounded-2xl bg-bg-elev border border-dashed border-ink/20 hover:bg-white active:bg-bg-deep min-tap transition"
         >
-          <div className="text-ink">{ICONS.custom}</div>
+          <div className={TILE_COLOR.custom}>{ICONS.custom}</div>
           <div className="text-[13px] font-semibold text-ink">Custom</div>
         </motion.button>
       </div>

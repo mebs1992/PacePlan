@@ -11,18 +11,19 @@ type Props = ButtonHTMLAttributes<HTMLButtonElement> & {
 
 const variants: Record<Variant, string> = {
   primary:
-    'bg-gradient-to-br from-accent to-accent-violet text-bg-solid shadow-[0_8px_24px_-8px_rgba(34,211,238,0.6)] hover:shadow-[0_12px_32px_-8px_rgba(34,211,238,0.8)] active:scale-[0.97]',
+    'bg-accent text-white shadow-fab hover:bg-[#F04A4F] active:bg-[#E14A4F] active:shadow-press active:scale-[0.98]',
   secondary:
-    'bg-white/5 text-ink border border-white/10 hover:bg-white/10 active:scale-[0.97] backdrop-blur',
-  ghost: 'bg-transparent text-ink hover:bg-white/5 active:scale-[0.97]',
+    'bg-white text-ink border border-line hover:bg-bg-elev active:bg-bg-deep active:scale-[0.98]',
+  ghost:
+    'bg-transparent text-ink hover:bg-ink/5 active:bg-ink/10 active:scale-[0.98]',
   danger:
-    'bg-gradient-to-br from-risk-red to-[#a78bfa] text-white shadow-[0_8px_24px_-8px_rgba(244,63,94,0.6)] active:scale-[0.97]',
+    'bg-risk-red text-white shadow-[0_10px_24px_-8px_rgba(229,72,77,0.45),0_2px_6px_rgba(26,21,18,0.08)] hover:bg-[#D43C41] active:scale-[0.98]',
 };
 
 const sizes: Record<Size, string> = {
-  sm: 'h-9 px-3 text-sm',
-  md: 'h-11 px-4 text-base',
-  lg: 'h-14 px-6 text-base font-semibold',
+  sm: 'h-9 px-3 text-sm rounded-xl',
+  md: 'h-11 px-4 text-base rounded-xl',
+  lg: 'h-14 px-6 text-base font-semibold rounded-2xl',
 };
 
 export const Button = forwardRef<HTMLButtonElement, Props>(
@@ -30,7 +31,7 @@ export const Button = forwardRef<HTMLButtonElement, Props>(
     <button
       ref={ref}
       className={cn(
-        'relative inline-flex items-center justify-center rounded-2xl font-medium transition-all duration-150 min-tap select-none disabled:opacity-40 disabled:pointer-events-none',
+        'relative inline-flex items-center justify-center font-semibold transition-all duration-150 min-tap select-none disabled:opacity-40 disabled:pointer-events-none tracking-tight',
         variants[variant],
         sizes[size],
         className

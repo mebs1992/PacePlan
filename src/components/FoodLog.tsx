@@ -15,9 +15,7 @@ export function FoodLog({ entries, now, onAdd }: Props) {
   return (
     <Card>
       <div className="flex items-center justify-between mb-3">
-        <h2 className="text-[11px] font-semibold text-ink-muted uppercase tracking-[0.2em]">
-          Food
-        </h2>
+        <h2 className="text-base font-semibold text-ink">Food</h2>
         {last && (
           <div className="text-[11px] text-ink-muted">
             Last {last.size} · {formatRelative(last.at, now)}
@@ -26,20 +24,20 @@ export function FoodLog({ entries, now, onAdd }: Props) {
       </div>
       <div className="grid grid-cols-2 gap-2">
         <motion.button
-          whileTap={{ scale: 0.92 }}
+          whileTap={{ scale: 0.94 }}
           onClick={() => onAdd('snack')}
-          className="flex items-center justify-center gap-2 h-12 rounded-xl bg-gradient-to-br from-amber-500/20 to-amber-500/5 border border-white/10 min-tap"
+          className="flex items-center justify-center gap-2 h-12 rounded-xl bg-bg-elev border border-line hover:bg-white active:bg-bg-deep min-tap transition"
         >
-          <Cookie className="h-5 w-5 text-amber-400" />
-          <span className="text-ink font-medium">Snack</span>
+          <Cookie className="h-5 w-5 text-amber-600" />
+          <span className="text-ink font-semibold text-sm">Snack</span>
         </motion.button>
         <motion.button
-          whileTap={{ scale: 0.92 }}
+          whileTap={{ scale: 0.94 }}
           onClick={() => onAdd('meal')}
-          className="flex items-center justify-center gap-2 h-12 rounded-xl bg-gradient-to-br from-emerald-500/20 to-emerald-500/5 border border-white/10 min-tap"
+          className="flex items-center justify-center gap-2 h-12 rounded-xl bg-bg-elev border border-line hover:bg-white active:bg-bg-deep min-tap transition"
         >
-          <UtensilsCrossed className="h-5 w-5 text-emerald-400" />
-          <span className="text-ink font-medium">Meal</span>
+          <UtensilsCrossed className="h-5 w-5 text-emerald-700" />
+          <span className="text-ink font-semibold text-sm">Meal</span>
         </motion.button>
       </div>
     </Card>

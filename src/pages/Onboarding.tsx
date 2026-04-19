@@ -5,7 +5,6 @@ import { Button } from '@/components/ui/Button';
 import { DisclaimerModal } from '@/components/DisclaimerModal';
 import { useProfile } from '@/store/useProfile';
 import { motion } from 'framer-motion';
-import { Sparkles } from 'lucide-react';
 import type { Sex } from '@/types';
 
 export function Onboarding() {
@@ -51,17 +50,16 @@ export function Onboarding() {
         initial={{ opacity: 0, y: -8 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.4 }}
-        className="text-center my-10"
+        className="text-center mt-10 mb-8"
       >
-        <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-white/5 border border-white/10 text-[11px] text-ink-muted mb-4">
-          <Sparkles className="h-3 w-3 text-accent" />
-          mobile · offline · private
+        <div className="mx-auto h-14 w-14 rounded-2xl bg-accent flex items-center justify-center mb-5 shadow-fab">
+          <span className="text-white text-2xl font-bold">B</span>
         </div>
-        <h1 className="text-5xl font-bold tracking-tight gradient-text">
-          Hangover Buddy
+        <h1 className="text-4xl font-bold tracking-tight text-ink">
+          Hangover <span className="sunset-text">Buddy</span>
         </h1>
-        <p className="text-ink-muted text-sm mt-3 max-w-xs mx-auto">
-          Pace your drinks with live BAC tracking. Skip the morning regret.
+        <p className="text-ink-muted text-[15px] mt-3 max-w-xs mx-auto leading-snug">
+          Pace your drinks. Skip the morning regret.
         </p>
       </motion.header>
 
@@ -72,48 +70,42 @@ export function Onboarding() {
       >
         <Card className="space-y-5">
           <div>
-            <label className="text-[11px] uppercase tracking-[0.2em] text-ink-muted">
-              Name
-            </label>
+            <label className="text-sm font-semibold text-ink">Name</label>
             <Input
               value={name}
               onChange={(e) => setName(e.target.value)}
               placeholder="Your name"
               autoComplete="given-name"
-              className="mt-1.5"
+              className="mt-2"
             />
           </div>
 
           <div>
-            <label className="text-[11px] uppercase tracking-[0.2em] text-ink-muted">
-              Biological sex
-            </label>
-            <div className="mt-1.5 grid grid-cols-2 gap-2">
+            <label className="text-sm font-semibold text-ink">Biological sex</label>
+            <div className="mt-2 grid grid-cols-2 gap-2">
               {(['male', 'female'] as const).map((opt) => (
                 <motion.button
                   key={opt}
                   whileTap={{ scale: 0.97 }}
                   onClick={() => setSex(opt)}
-                  className={`relative h-12 rounded-xl font-medium capitalize min-tap transition-all overflow-hidden ${
+                  className={`relative h-12 rounded-xl font-semibold capitalize min-tap transition-all ${
                     sex === opt
-                      ? 'bg-gradient-to-br from-accent/30 to-accent-violet/30 border border-accent/50 text-ink shadow-[0_0_20px_-6px_rgba(34,211,238,0.5)]'
-                      : 'bg-white/5 border border-white/10 text-ink-muted'
+                      ? 'bg-accent text-white shadow-fab'
+                      : 'bg-bg-elev border border-line text-ink-muted hover:bg-white'
                   }`}
                 >
                   {opt}
                 </motion.button>
               ))}
             </div>
-            <p className="text-[11px] text-ink-dim mt-1.5">
+            <p className="text-xs text-ink-dim mt-2">
               Used in the Widmark BAC formula (r=0.68 male, 0.55 female).
             </p>
           </div>
 
           <div className="grid grid-cols-3 gap-2">
             <div>
-              <label className="text-[11px] uppercase tracking-[0.2em] text-ink-muted">
-                Age
-              </label>
+              <label className="text-xs font-semibold text-ink-muted">Age</label>
               <Input
                 type="number"
                 inputMode="numeric"
@@ -124,9 +116,7 @@ export function Onboarding() {
               />
             </div>
             <div>
-              <label className="text-[11px] uppercase tracking-[0.2em] text-ink-muted">
-                Height
-              </label>
+              <label className="text-xs font-semibold text-ink-muted">Height</label>
               <Input
                 type="number"
                 inputMode="decimal"
@@ -137,9 +127,7 @@ export function Onboarding() {
               />
             </div>
             <div>
-              <label className="text-[11px] uppercase tracking-[0.2em] text-ink-muted">
-                Weight
-              </label>
+              <label className="text-xs font-semibold text-ink-muted">Weight</label>
               <Input
                 type="number"
                 inputMode="decimal"
@@ -155,19 +143,19 @@ export function Onboarding() {
             <motion.div
               initial={{ opacity: 0, y: -4 }}
               animate={{ opacity: 1, y: 0 }}
-              className="text-risk-red text-sm"
+              className="text-risk-red text-sm font-medium"
             >
               {error}
             </motion.div>
           )}
 
           <Button className="w-full" size="lg" onClick={attemptSubmit}>
-            Get started →
+            Get started
           </Button>
         </Card>
       </motion.div>
 
-      <p className="text-[11px] text-ink-dim text-center mt-4">
+      <p className="text-xs text-ink-dim text-center mt-4">
         Data stays on this device. No account, no tracking.
       </p>
 

@@ -15,19 +15,19 @@ export function DisclaimerModal({ onAccept }: Props) {
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
         exit={{ opacity: 0 }}
-        className="fixed inset-0 z-50 bg-black/70 backdrop-blur-md flex items-end sm:items-center justify-center p-4"
+        className="fixed inset-0 z-50 bg-ink/40 backdrop-blur-sm flex items-end sm:items-center justify-center p-4"
       >
         <motion.div
           initial={{ y: 30, opacity: 0 }}
           animate={{ y: 0, opacity: 1 }}
           transition={{ type: 'spring', stiffness: 320, damping: 32 }}
-          className="glass-strong rounded-3xl p-6 max-w-md w-full"
+          className="bg-bg-card rounded-3xl p-6 max-w-md w-full border border-line shadow-card-lg"
         >
           <div className="flex items-center gap-3 mb-4">
-            <div className="p-2 rounded-xl bg-gradient-to-br from-risk-yellow/30 to-risk-red/20 border border-risk-yellow/30">
+            <div className="p-2.5 rounded-xl bg-amber-50 border border-amber-200">
               <ShieldAlert className="h-5 w-5 text-risk-yellow" />
             </div>
-            <h2 className="text-lg font-semibold text-ink">Before you start</h2>
+            <h2 className="text-lg font-bold text-ink tracking-tight">Before you start</h2>
           </div>
           <div className="text-sm text-ink-muted space-y-3 mb-5 leading-relaxed">
             <p>
@@ -36,7 +36,7 @@ export function DisclaimerModal({ onAccept }: Props) {
               Real BAC depends on many factors this app cannot see — medications,
               hydration, health conditions, fatigue, and individual metabolism.
             </p>
-            <p className="text-risk-red font-medium">
+            <p className="text-risk-red font-semibold">
               Never use this app to decide if you're safe to drive. The only safe BAC for
               driving is 0.00.
             </p>

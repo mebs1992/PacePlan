@@ -30,7 +30,7 @@ import {
 } from '@/lib/bac';
 import { formatClockWithDay } from '@/lib/time';
 import { motion } from 'framer-motion';
-import { Car, Moon, Sparkles } from 'lucide-react';
+import { Car, Moon } from 'lucide-react';
 
 export function SessionPage() {
   const profile = useProfile((s) => s.profile)!;
@@ -102,38 +102,38 @@ export function SessionPage() {
 
   return (
     <div className="max-w-md mx-auto p-4 pb-28">
-      <header className="mt-4 mb-2 flex items-baseline justify-between">
-        <h1 className="text-xl font-bold text-ink">Hi, {profile.name}</h1>
-        <span className="text-[10px] text-ink-dim uppercase tracking-widest">
+      <header className="mt-6 mb-4 flex items-baseline justify-between">
+        <h1 className="text-2xl font-bold text-ink tracking-tight">Hi, {profile.name}</h1>
+        <span className="text-[11px] text-ink-dim font-medium">
           Estimates only
         </span>
       </header>
 
       {behind && <WaterAlert deficit={deficit} onAdd={addWater} />}
 
-      <div className="mt-3">
+      <div className={behind ? 'mt-3' : ''}>
         <DrivingToggle value={planToDrive} onChange={setPlanToDrive} />
       </div>
 
       {planToDrive ? (
-        <>
+        <div className="mt-3">
           <BACGauge range={range} risk={risk} />
           {risk === 'red' && (
             <motion.div
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
-              className="mt-3 rounded-2xl p-3 bg-gradient-to-br from-risk-red/25 to-[#a78bfa]/10 border border-risk-red/40 text-sm text-risk-red shadow-[0_0_30px_-8px_rgba(244,63,94,0.6)]"
+              className="mt-3 rounded-2xl p-3 bg-rose-50 border border-rose-200 text-sm text-risk-red font-medium"
             >
               Estimated BAC exceeds the legal driving limit in most regions (0.05). Do
               not drive. Consider stopping.
             </motion.div>
           )}
           {risk === 'yellow' && (
-            <div className="mt-3 rounded-2xl p-3 bg-gradient-to-br from-risk-yellow/15 to-amber-500/5 border border-risk-yellow/30 text-sm text-risk-yellow">
+            <div className="mt-3 rounded-2xl p-3 bg-amber-50 border border-amber-200 text-sm text-amber-900 font-medium">
               Approaching the driving limit. Plan a ride home.
             </div>
           )}
-        </>
+        </div>
       ) : (
         <div className="mt-3">
           <HangoverCard
@@ -147,27 +147,24 @@ export function SessionPage() {
         </div>
       )}
 
-      <div className="grid grid-cols-2 gap-2 mt-4">
+      <div className="grid grid-cols-2 gap-2 mt-3">
         {planToDrive ? (
           <StatChip
             label="Drinks left"
             value={legalDrinksLeft.toString()}
             sub="under 0.05 BAC"
-            accent="from-accent/20 to-accent/5"
           />
         ) : (
           <StatChip
             label="Peak tonight"
             value={`${sessionPeak.toFixed(3)}%`}
             sub="projected max BAC"
-            accent="from-accent/20 to-accent/5"
           />
         )}
         <StatChip
           label="Sober by"
           value={sober ? formatClockWithDay(sober, now) : '—'}
           sub="estimated"
-          accent="from-accent-violet/20 to-accent-violet/5"
         />
       </div>
 
@@ -177,7 +174,7 @@ export function SessionPage() {
         </div>
       )}
 
-      <div className="space-y-3 mt-4">
+      <div className="space-y-3 mt-3">
         <CutoffBanner result={cutoff} now={now} />
         <WakeTimePicker wakeAtMs={wakeAtMs} now={now} onChange={setWakeAt} />
         <SessionTimer
@@ -197,7 +194,7 @@ export function SessionPage() {
         <DrinkList drinks={active.drinks} now={now} onRemove={removeDrink} />
 
         <Button
-          variant="danger"
+          variant="secondary"
           size="lg"
           className="w-full mt-4"
           onClick={() => {
@@ -215,7 +212,7 @@ export function SessionPage() {
         >
           End session
         </Button>
-        <p className="text-[11px] text-ink-dim text-center">
+        <p className="text-xs text-ink-dim text-center">
           Estimates only — never drive after drinking.
         </p>
       </div>
@@ -231,13 +228,13 @@ function DrivingToggle({
   onChange: (v: boolean) => void;
 }) {
   return (
-    <div className="relative glass rounded-2xl p-1 flex">
+    <div className="relative bg-bg-elev rounded-2xl p-1 flex border border-line">
       <button
         type="button"
         onClick={() => onChange(false)}
-        className={`flex-1 min-tap h-11 rounded-xl flex items-center justify-center gap-2 text-sm font-medium transition-all ${
+        className={`flex-1 min-tap h-11 rounded-xl flex items-center justify-center gap-2 text-sm font-semibold transition-all ${
           !value
-            ? 'bg-gradient-to-br from-accent/25 to-accent-violet/25 border border-accent/30 text-ink shadow-[0_0_20px_-6px_rgba(34,211,238,0.5)]'
+            ? 'bg-bg-card text-ink shadow-press'
             : 'text-ink-muted'
         }`}
       >
@@ -246,9 +243,9 @@ function DrivingToggle({
       <button
         type="button"
         onClick={() => onChange(true)}
-        className={`flex-1 min-tap h-11 rounded-xl flex items-center justify-center gap-2 text-sm font-medium transition-all ${
+        className={`flex-1 min-tap h-11 rounded-xl flex items-center justify-center gap-2 text-sm font-semibold transition-all ${
           value
-            ? 'bg-gradient-to-br from-risk-red/25 to-[#a78bfa]/25 border border-risk-red/40 text-ink shadow-[0_0_20px_-6px_rgba(244,63,94,0.5)]'
+            ? 'bg-risk-red text-white shadow-press'
             : 'text-ink-muted'
         }`}
       >
@@ -262,22 +259,18 @@ function StatChip({
   label,
   value,
   sub,
-  accent,
 }: {
   label: string;
   value: string;
   sub: string;
-  accent: string;
 }) {
   return (
-    <div
-      className={`relative overflow-hidden rounded-2xl p-3 glass bg-gradient-to-br ${accent}`}
-    >
-      <div className="text-[10px] uppercase tracking-[0.2em] text-ink-muted">{label}</div>
-      <div className="text-lg font-bold text-ink mt-1 tabular-nums leading-tight">
+    <div className="relative overflow-hidden rounded-2xl p-3 bg-bg-card border border-line shadow-card">
+      <div className="text-[11px] font-semibold text-ink-muted">{label}</div>
+      <div className="text-lg font-bold text-ink mt-1 tabular-nums leading-tight tracking-tight">
         {value}
       </div>
-      <div className="text-[10px] text-ink-dim">{sub}</div>
+      <div className="text-[11px] text-ink-dim">{sub}</div>
     </div>
   );
 }
@@ -315,16 +308,12 @@ function StartSession({
       <motion.header
         initial={{ opacity: 0, y: -6 }}
         animate={{ opacity: 1, y: 0 }}
-        className="mt-8 mb-6"
+        className="mt-10 mb-6"
       >
-        <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-white/5 border border-white/10 text-[11px] text-ink-muted mb-3">
-          <Sparkles className="h-3 w-3 text-accent" />
-          ready when you are
-        </div>
-        <h1 className="text-3xl font-bold text-ink">
-          Hey, <span className="gradient-text">{profileName}</span>
+        <h1 className="text-4xl font-bold text-ink tracking-tight">
+          Hey, <span className="sunset-text">{profileName}</span>
         </h1>
-        <p className="text-ink-muted text-sm mt-2">
+        <p className="text-ink-muted text-[15px] mt-2">
           How long do you plan to drink tonight? You can adjust later.
         </p>
       </motion.header>
@@ -335,12 +324,12 @@ function StartSession({
         transition={{ delay: 0.1 }}
       >
         <Card className="text-center">
-          <div className="text-[11px] uppercase tracking-[0.2em] text-ink-muted">
+          <div className="text-xs font-semibold text-ink-muted">
             Expected duration
           </div>
-          <div className="font-display text-7xl font-semibold text-ink my-4 tabular-nums gradient-text leading-none">
-            {hours}
-            <span className="text-3xl text-ink-muted ml-1">h</span>
+          <div className="text-[88px] font-bold text-ink my-3 tabular-nums leading-none tracking-tight">
+            <span className="sunset-text">{hours}</span>
+            <span className="text-3xl text-ink-muted ml-1 font-semibold">h</span>
           </div>
           <input
             type="range"
@@ -351,7 +340,7 @@ function StartSession({
             onChange={(e) => setHours(parseFloat(e.target.value))}
             className="w-full"
           />
-          <div className="flex justify-between text-[10px] text-ink-dim mt-2 px-1">
+          <div className="flex justify-between text-xs text-ink-dim mt-2 px-1">
             <span>1h</span>
             <span>6h</span>
             <span>12h</span>
@@ -359,15 +348,13 @@ function StartSession({
 
           <div className="mt-6 text-left">
             <div className="flex items-center justify-between">
-              <label className="text-[11px] uppercase tracking-[0.2em] text-ink-muted">
-                Wake up time
-              </label>
+              <label className="text-sm font-semibold text-ink">Wake up time</label>
               <button
                 type="button"
                 onClick={() => setUseWake((v) => !v)}
-                className="text-[11px] text-ink-muted underline underline-offset-2"
+                className="text-xs text-accent font-semibold underline-offset-2 hover:underline"
               >
-                {useWake ? 'I’ll sleep in' : 'Set a time'}
+                {useWake ? "I'll sleep in" : 'Set a time'}
               </button>
             </div>
             {useWake ? (
@@ -375,27 +362,25 @@ function StartSession({
                 type="datetime-local"
                 value={wakeDraft}
                 onChange={(e) => setWakeDraft(e.target.value)}
-                className="w-full h-11 px-3 mt-2 rounded-xl bg-white/10 border border-white/10 text-ink"
+                className="w-full h-11 px-3 mt-2 rounded-xl bg-bg-elev border border-line text-ink focus:border-accent focus:bg-white focus:outline-none focus:ring-4 focus:ring-accent/15"
               />
             ) : (
               <div className="mt-2 text-ink-dim text-sm">
-                Whenever — we’ll only track sober time.
+                Whenever — we'll only track sober time.
               </div>
             )}
           </div>
 
           <div className="mt-5 text-left">
-            <label className="text-[11px] uppercase tracking-[0.2em] text-ink-muted">
-              Do you plan on driving?
-            </label>
+            <label className="text-sm font-semibold text-ink">Do you plan on driving?</label>
             <div className="mt-2 grid grid-cols-2 gap-2">
               <button
                 type="button"
                 onClick={() => setDriving(false)}
-                className={`h-11 rounded-xl text-sm font-medium min-tap transition-all ${
+                className={`h-11 rounded-xl text-sm font-semibold min-tap transition-all ${
                   !driving
-                    ? 'bg-gradient-to-br from-accent/25 to-accent-violet/25 border border-accent/30 text-ink'
-                    : 'bg-white/5 border border-white/10 text-ink-muted'
+                    ? 'bg-ink text-white'
+                    : 'bg-bg-elev border border-line text-ink-muted'
                 }`}
               >
                 No
@@ -403,10 +388,10 @@ function StartSession({
               <button
                 type="button"
                 onClick={() => setDriving(true)}
-                className={`h-11 rounded-xl text-sm font-medium min-tap transition-all ${
+                className={`h-11 rounded-xl text-sm font-semibold min-tap transition-all ${
                   driving
-                    ? 'bg-gradient-to-br from-risk-red/25 to-[#a78bfa]/25 border border-risk-red/40 text-ink'
-                    : 'bg-white/5 border border-white/10 text-ink-muted'
+                    ? 'bg-risk-red text-white'
+                    : 'bg-bg-elev border border-line text-ink-muted'
                 }`}
               >
                 Yes
@@ -424,12 +409,12 @@ function StartSession({
               })
             }
           >
-            Start session →
+            Start session
           </Button>
         </Card>
       </motion.div>
 
-      <p className="text-[11px] text-ink-dim text-center mt-4">
+      <p className="text-xs text-ink-dim text-center mt-4">
         Estimates only — never drive after drinking.
       </p>
     </div>

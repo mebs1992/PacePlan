@@ -3,26 +3,26 @@ import type { RiskLevel } from '@/types';
 import { AnimatedNumber } from './AnimatedNumber';
 import { motion } from 'framer-motion';
 
-const RISK_GRADIENT: Record<RiskLevel, { from: string; to: string; glow: string; text: string; label: string }> = {
+const RISK_GRADIENT: Record<RiskLevel, { from: string; to: string; text: string; dot: string; label: string }> = {
   green: {
-    from: '#10b981',
-    to: '#22d3ee',
-    glow: 'rgba(16, 185, 129, 0.45)',
+    from: '#2E9E6B',
+    to: '#7AC59A',
     text: 'text-risk-green',
+    dot: '#2E9E6B',
     label: 'Pacing well',
   },
   yellow: {
-    from: '#f59e0b',
-    to: '#f43f5e',
-    glow: 'rgba(245, 158, 11, 0.45)',
+    from: '#F4A261',
+    to: '#E8A33A',
     text: 'text-risk-yellow',
+    dot: '#E8A33A',
     label: 'Slow down',
   },
   red: {
-    from: '#f43f5e',
-    to: '#a78bfa',
-    glow: 'rgba(244, 63, 94, 0.5)',
+    from: '#FF5A5F',
+    to: '#E5484D',
     text: 'text-risk-red',
+    dot: '#E5484D',
     label: 'Stop drinking',
   },
 };
@@ -34,7 +34,7 @@ type Props = {
 };
 
 const SIZE = 240;
-const STROKE = 14;
+const STROKE = 10;
 const RADIUS = (SIZE - STROKE) / 2;
 const CIRC = 2 * Math.PI * RADIUS;
 
@@ -45,16 +45,7 @@ export function BACGauge({ range, risk, capPercent = 0.10 }: Props) {
   const gradientId = `bac-grad-${risk}`;
 
   return (
-    <div className="relative flex flex-col items-center py-2">
-      <div
-        className="absolute inset-0 -z-10 mx-auto blur-3xl opacity-60"
-        style={{
-          width: SIZE,
-          height: SIZE,
-          background: `radial-gradient(circle, ${palette.glow} 0%, transparent 60%)`,
-        }}
-      />
-
+    <div className="relative flex flex-col items-center py-4 bg-bg-card rounded-3xl border border-line shadow-card">
       <div className="relative" style={{ width: SIZE, height: SIZE }}>
         <svg width={SIZE} height={SIZE} className="-rotate-90">
           <defs>
@@ -67,7 +58,7 @@ export function BACGauge({ range, risk, capPercent = 0.10 }: Props) {
             cx={SIZE / 2}
             cy={SIZE / 2}
             r={RADIUS}
-            stroke="rgba(148, 163, 184, 0.12)"
+            stroke="#EDE3D6"
             strokeWidth={STROKE}
             fill="none"
           />
@@ -87,13 +78,13 @@ export function BACGauge({ range, risk, capPercent = 0.10 }: Props) {
         </svg>
 
         <div className="absolute inset-0 flex flex-col items-center justify-center">
-          <div className="text-[10px] uppercase tracking-[0.25em] text-ink-muted mb-1">
+          <div className="text-[11px] font-medium text-ink-muted mb-1">
             Estimated BAC
           </div>
-          <div className="font-display text-[56px] leading-none font-semibold text-ink tabular-nums">
+          <div className="font-display text-[56px] leading-none font-semibold text-ink tabular-nums tracking-tight">
             <AnimatedNumber value={range.typical} decimals={3} suffix="%" />
           </div>
-          <div className="text-[11px] text-ink-dim mt-2 tabular-nums tracking-wide">
+          <div className="text-[12px] text-ink-dim mt-2 tabular-nums">
             {range.low.toFixed(3)}–{range.high.toFixed(3)}%
           </div>
         </div>
@@ -101,15 +92,15 @@ export function BACGauge({ range, risk, capPercent = 0.10 }: Props) {
 
       <motion.div
         key={risk}
-        initial={{ opacity: 0, y: 6 }}
+        initial={{ opacity: 0, y: 4 }}
         animate={{ opacity: 1, y: 0 }}
-        className="mt-4 flex items-center gap-2"
+        className="mt-3 mb-1 flex items-center gap-2"
       >
         <span
-          className="h-2 w-2 rounded-full animate-breathe"
-          style={{ background: palette.from, boxShadow: `0 0 12px ${palette.glow}` }}
+          className="h-1.5 w-1.5 rounded-full"
+          style={{ background: palette.dot }}
         />
-        <span className={`text-sm font-medium ${palette.text}`}>{palette.label}</span>
+        <span className={`text-sm font-semibold ${palette.text}`}>{palette.label}</span>
       </motion.div>
     </div>
   );
