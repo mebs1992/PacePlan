@@ -1,8 +1,6 @@
-import { Droplet, Minus, Plus } from 'lucide-react';
-import { motion } from 'framer-motion';
+import { motion, AnimatePresence } from 'framer-motion';
 import { cn } from '@/lib/utils';
 import type { WaterEntry } from '@/types';
-import { formatRelative } from '@/lib/time';
 
 type Props = {
   glasses: number;
@@ -14,6 +12,11 @@ type Props = {
   onRemove: (id: string) => void;
 };
 
+function fmtClock(ms: number): string {
+  const d = new Date(ms);
+  return `${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`;
+}
+
 export function WaterPanel({
   glasses,
   drinks,
@@ -23,91 +26,73 @@ export function WaterPanel({
   onAdd,
   onRemove,
 }: Props) {
-  const target = Math.max(drinks, 1);
-  const pct = Math.min(1, glasses / target);
+  const deficit = Math.max(0, drinks - glasses);
 
   return (
     <div>
-      <div className="text-center pt-2 pb-4">
-        <div className="mx-auto h-16 w-16 rounded-2xl bg-sky-100 flex items-center justify-center mb-3">
-          <Droplet className="h-8 w-8 text-sky-600" />
-        </div>
-        <div className="text-5xl font-bold text-ink tabular-nums tracking-tight">
-          {glasses}
-          <span className="text-2xl text-ink-muted font-semibold"> / {drinks || 1}</span>
-        </div>
-        <div
-          className={cn(
-            'text-sm font-semibold mt-1',
-            behind ? 'text-risk-yellow' : 'text-ink-muted',
+      <div className="rounded-[16px] border border-line bg-bg-elev p-4">
+        <div className="eyebrow">RULE OF THUMB</div>
+        <div className="font-display text-[20px] leading-[1.2] tracking-[-0.01em] text-ink mt-1">
+          One water per drink.{' '}
+          {drinks === 0 ? (
+            <span className="hb-italic text-ink-muted">No drinks logged yet.</span>
+          ) : deficit > 0 ? (
+            <span className="hb-italic text-risk-yellow">
+              You&rsquo;re {deficit} behind.
+            </span>
+          ) : (
+            <span className="hb-italic text-risk-green">You&rsquo;re on pace.</span>
           )}
-        >
-          {behind
-            ? `${target - glasses} ${target - glasses === 1 ? 'glass' : 'glasses'} behind`
-            : drinks === 0
-              ? 'Stay ahead of the curve'
-              : 'Good pace'}
-        </div>
-
-        <div className="relative h-3 rounded-full bg-bg-elev border border-line overflow-hidden my-5">
-          <motion.div
-            className={cn(
-              'absolute inset-y-0 left-0 rounded-full',
-              behind ? 'bg-risk-yellow' : 'bg-sky-500',
-            )}
-            initial={false}
-            animate={{ width: `${pct * 100}%` }}
-            transition={{ duration: 0.5, ease: [0.32, 0.72, 0, 1] }}
-          />
-        </div>
-
-        <div className="flex items-center justify-center gap-4">
-          <motion.button
-            whileTap={{ scale: 0.92 }}
-            onClick={() => {
-              const last = water[water.length - 1];
-              if (last) onRemove(last.id);
-            }}
-            disabled={glasses === 0}
-            className="h-14 w-14 rounded-full bg-bg-elev border border-line text-ink-muted disabled:opacity-40 active:bg-bg-deep transition"
-            aria-label="Remove one"
-          >
-            <Minus className="h-6 w-6 mx-auto" />
-          </motion.button>
-          <motion.button
-            whileTap={{ scale: 0.94 }}
-            onClick={onAdd}
-            className={cn(
-              'h-20 w-20 rounded-full flex items-center justify-center text-white shadow-[0_10px_24px_-8px_rgba(14,165,233,0.55),0_2px_6px_rgba(26,21,18,0.08)] bg-sky-500 hover:bg-sky-600 active:bg-sky-700 transition',
-              behind && 'animate-breathe',
-            )}
-            aria-label="Add one glass"
-          >
-            <Plus className="h-10 w-10" strokeWidth={2.5} />
-          </motion.button>
-          <div className="h-14 w-14" aria-hidden />
         </div>
       </div>
 
+      <motion.button
+        type="button"
+        whileTap={{ scale: 0.98 }}
+        onClick={onAdd}
+        className={cn(
+          'mt-3 w-full h-[60px] rounded-full font-display text-[18px] transition-all min-tap',
+          'bg-accent text-bg-card hover:brightness-110 active:brightness-95 shadow-fab',
+          behind && 'animate-breathe',
+        )}
+      >
+        <span className="hb-italic">+ Log a water</span>
+      </motion.button>
+
       {water.length > 0 && (
-        <div className="mt-2 border-t border-line pt-4">
-          <div className="text-sm font-bold text-ink mb-2">History</div>
-          <ul>
-            {water
-              .slice()
-              .reverse()
-              .map((w) => (
-                <li
-                  key={w.id}
-                  className="flex items-center justify-between py-2 border-b border-line last:border-0"
-                >
-                  <span className="text-sm text-ink">Glass of water</span>
-                  <span className="text-xs text-ink-muted tabular-nums">
-                    {formatRelative(w.at, now)}
-                  </span>
-                </li>
-              ))}
-          </ul>
+        <div className="mt-6">
+          <div className="flex items-baseline justify-between mb-2">
+            <div className="eyebrow">LOGGED · {water.length}</div>
+            <div className="font-mono text-[10px] text-ink-dim tracking-tight">
+              tap to undo
+            </div>
+          </div>
+          <div className="flex flex-wrap gap-1.5">
+            <AnimatePresence initial={false}>
+              {water
+                .slice()
+                .reverse()
+                .map((w) => (
+                  <motion.button
+                    key={w.id}
+                    type="button"
+                    layout
+                    initial={{ opacity: 0, scale: 0.9 }}
+                    animate={{ opacity: 1, scale: 1 }}
+                    exit={{ opacity: 0, scale: 0.85 }}
+                    transition={{ duration: 0.18 }}
+                    onClick={() => onRemove(w.id)}
+                    className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full border border-line bg-bg-elev font-mono text-[11px] text-ink-muted hover:text-ink hover:border-line-2 tabular-nums tracking-tight transition"
+                  >
+                    <span>{fmtClock(w.at)}</span>
+                    <span className="text-ink-dim">
+                      · {Math.max(0, Math.round((now - w.at) / 60000))}m
+                    </span>
+                    <span className="text-ink-dim">✕</span>
+                  </motion.button>
+                ))}
+            </AnimatePresence>
+          </div>
         </div>
       )}
     </div>

@@ -1,28 +1,26 @@
 import { useMemo, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import {
-  Angry,
-  Frown,
-  Meh,
-  Smile,
-  Laugh,
-  Sunrise,
-  X,
-  Check,
-  type LucideIcon,
-} from 'lucide-react';
-import { Button } from '@/components/ui/Button';
+import { X } from 'lucide-react';
 import { formatDate, formatDuration } from '@/lib/time';
+import { hangoverLabel } from '@/lib/bac';
 import { useSession } from '@/store/useSession';
 import type { HangoverRecap, Symptom } from '@/types';
 
-const RATINGS: { value: 1 | 2 | 3 | 4 | 5; label: string; icon: LucideIcon; color: string; bg: string }[] = [
-  { value: 1, label: 'Wrecked', icon: Angry, color: 'text-risk-red', bg: 'bg-rose-50 border-rose-200' },
-  { value: 2, label: 'Rough', icon: Frown, color: 'text-orange-600', bg: 'bg-orange-50 border-orange-200' },
-  { value: 3, label: 'Meh', icon: Meh, color: 'text-amber-600', bg: 'bg-amber-50 border-amber-200' },
-  { value: 4, label: 'Alright', icon: Smile, color: 'text-lime-700', bg: 'bg-lime-50 border-lime-200' },
-  { value: 5, label: 'Great', icon: Laugh, color: 'text-emerald-700', bg: 'bg-emerald-50 border-emerald-200' },
+const RATINGS: { value: 1 | 2 | 3 | 4 | 5; label: string; color: string }[] = [
+  { value: 1, label: 'Wrecked', color: 'text-risk-red' },
+  { value: 2, label: 'Rough', color: 'text-risk-red' },
+  { value: 3, label: 'Meh', color: 'text-risk-yellow' },
+  { value: 4, label: 'Alright', color: 'text-risk-green' },
+  { value: 5, label: 'Great', color: 'text-risk-green' },
 ];
+
+const RATING_BORDER: Record<1 | 2 | 3 | 4 | 5, string> = {
+  1: 'border-risk-red',
+  2: 'border-risk-red',
+  3: 'border-risk-yellow',
+  4: 'border-risk-green',
+  5: 'border-risk-green',
+};
 
 const SYMPTOMS: { key: Symptom; label: string }[] = [
   { key: 'headache', label: 'Headache' },
@@ -31,7 +29,7 @@ const SYMPTOMS: { key: Symptom; label: string }[] = [
   { key: 'queasy', label: 'Queasy' },
   { key: 'dehydrated', label: 'Dehydrated' },
   { key: 'anxious', label: 'Anxious' },
-  { key: 'fine', label: 'Feel fine' },
+  { key: 'fine', label: 'Fine' },
 ];
 
 type Props = {
@@ -44,7 +42,7 @@ export function MorningRecap({ sessionId, onDismiss }: Props) {
   const submitRecap = useSession((s) => s.submitRecap);
   const session = useMemo(
     () => history.find((s) => s.id === sessionId),
-    [history, sessionId]
+    [history, sessionId],
   );
 
   const [rating, setRating] = useState<1 | 2 | 3 | 4 | 5 | null>(null);
@@ -92,80 +90,83 @@ export function MorningRecap({ sessionId, onDismiss }: Props) {
         exit={{ opacity: 0 }}
         className="fixed inset-0 z-50 bg-bg-solid overflow-y-auto"
       >
-        <div className="max-w-md mx-auto p-4 pb-12">
-          <div className="flex items-center justify-between pt-4">
-            <div className="flex items-center gap-2">
-              <div className="h-10 w-10 rounded-full bg-amber-100 flex items-center justify-center">
-                <Sunrise className="h-5 w-5 text-amber-700" />
-              </div>
-              <div>
-                <div className="text-[11px] font-semibold text-ink-muted">Morning recap</div>
-                <div className="text-sm font-bold text-ink tracking-tight">
-                  {formatDate(session.startedAt)}
-                </div>
+        <div className="max-w-[480px] mx-auto px-5 pt-6 pb-12">
+          <div className="flex items-start justify-between pt-2">
+            <div>
+              <div className="eyebrow">GOOD MORNING</div>
+              <div className="font-mono text-[12px] text-ink-muted mt-1 tracking-tight">
+                {formatDate(session.startedAt)}
               </div>
             </div>
             <button
               onClick={onDismiss}
-              className="h-10 w-10 rounded-full flex items-center justify-center text-ink-muted hover:bg-ink/5 transition"
-              aria-label="Skip"
+              className="h-10 w-10 rounded-full border border-line bg-bg-card text-ink-muted hover:bg-bg-elev flex items-center justify-center transition"
+              aria-label="Dismiss"
             >
-              <X className="h-5 w-5" />
+              <X className="h-4 w-4" />
             </button>
           </div>
 
           <motion.h1
             initial={{ opacity: 0, y: -6 }}
             animate={{ opacity: 1, y: 0 }}
-            className="text-3xl font-bold text-ink tracking-tight mt-6"
+            className="font-display text-[44px] leading-[1.02] tracking-[-0.02em] text-ink mt-6"
           >
-            Good morning.
+            So.{' '}
+            <span className="hb-italic text-accent">How rough</span> are we?
           </motion.h1>
-          <p className="text-ink-muted text-[15px] mt-1">
-            Quick check-in to learn how your body actually handled last night.
+          <p className="font-display italic text-[14px] text-ink-muted mt-2 leading-snug">
+            One honest answer helps the forecast get smarter.
           </p>
 
-          <div className="mt-5 rounded-2xl bg-bg-card border border-line shadow-card p-4">
-            <div className="text-[11px] font-semibold text-ink-muted">Last night</div>
-            <div className="grid grid-cols-3 gap-3 mt-2">
-              <Stat label="Peak BAC" value={`${(session.peakBac ?? 0).toFixed(3)}%`} />
-              <Stat label="Drinks" value={`${session.drinks.length}`} sub={`${totalStd.toFixed(1)} std`} />
-              <Stat label="Duration" value={formatDuration(duration)} />
+          <div className="mt-6 rounded-[20px] border border-line bg-bg-card p-5">
+            <div className="eyebrow mb-3">LAST NIGHT</div>
+            <div className="grid grid-cols-3 gap-3">
+              <MetricCell label="PEAK" value={(session.peakBac ?? 0).toFixed(3)} />
+              <MetricCell
+                label="DRINKS"
+                value={String(session.drinks.length)}
+                sub={`${totalStd.toFixed(1)} std`}
+              />
+              <MetricCell label="DURATION" value={formatDuration(duration)} />
             </div>
             {session.predictedRisk && (
-              <div className="mt-3 text-xs text-ink-muted">
-                We predicted:{' '}
-                <span className="font-semibold text-ink capitalize">
-                  {session.predictedRisk}
-                </span>{' '}
-                hangover
+              <div className="font-mono text-[11px] text-ink-dim mt-4 tracking-tight">
+                we forecast ·{' '}
+                <span className="text-ink-muted">
+                  {hangoverLabel(session.predictedRisk).toLowerCase()}
+                </span>
               </div>
             )}
           </div>
 
           <div className="mt-6">
-            <div className="text-sm font-bold text-ink">How do you feel?</div>
-            <div className="mt-3 grid grid-cols-5 gap-2">
+            <div className="eyebrow mb-2">VERDICT</div>
+            <div className="grid grid-cols-5 gap-1.5">
               {RATINGS.map((r) => {
                 const active = rating === r.value;
                 return (
                   <motion.button
                     key={r.value}
-                    whileTap={{ scale: 0.92 }}
+                    type="button"
+                    whileTap={{ scale: 0.94 }}
                     onClick={() => setRating(r.value)}
-                    className={`flex flex-col items-center justify-center gap-1.5 py-3 rounded-2xl border transition-all ${
+                    className={`flex flex-col items-center justify-center gap-1 py-3 rounded-[14px] border transition-all ${
                       active
-                        ? `${r.bg} border-opacity-100 shadow-card`
-                        : 'bg-bg-card border-line hover:bg-bg-elev'
+                        ? `${RATING_BORDER[r.value]} bg-bg-card shadow-press`
+                        : 'border-line bg-bg-elev hover:bg-bg-card'
                     }`}
                   >
-                    <r.icon
-                      className={`h-7 w-7 ${active ? r.color : 'text-ink-muted'}`}
-                      strokeWidth={active ? 2.2 : 1.8}
-                    />
                     <span
-                      className={`text-[11px] font-bold tracking-tight ${
-                        active ? 'text-ink' : 'text-ink-muted'
+                      className={`font-display tabular-nums text-[22px] leading-none ${
+                        active ? r.color : 'text-ink-muted'
+                      }`}
+                    >
+                      {r.value}
+                    </span>
+                    <span
+                      className={`font-mono text-[9px] tracking-[0.12em] mt-1 uppercase ${
+                        active ? 'text-ink' : 'text-ink-dim'
                       }`}
                     >
                       {r.label}
@@ -177,20 +178,20 @@ export function MorningRecap({ sessionId, onDismiss }: Props) {
           </div>
 
           <div className="mt-6">
-            <div className="text-sm font-bold text-ink">Any symptoms?</div>
-            <div className="text-xs text-ink-muted mt-0.5">Tap any that apply.</div>
-            <div className="mt-3 flex flex-wrap gap-2">
+            <div className="eyebrow mb-2">SYMPTOMS</div>
+            <div className="flex flex-wrap gap-1.5">
               {SYMPTOMS.map((s) => {
                 const active = symptoms.has(s.key);
                 return (
                   <motion.button
                     key={s.key}
+                    type="button"
                     whileTap={{ scale: 0.95 }}
                     onClick={() => toggle(s.key)}
-                    className={`h-10 px-4 rounded-full text-sm font-semibold transition-all min-tap ${
+                    className={`px-3.5 py-2 rounded-full text-[13px] transition ${
                       active
-                        ? 'bg-ink text-white border border-ink'
-                        : 'bg-bg-card text-ink border border-line hover:bg-bg-elev'
+                        ? 'bg-ink text-bg-card border border-ink'
+                        : 'bg-transparent text-ink-muted border border-line hover:border-line-2'
                     }`}
                   >
                     {s.label}
@@ -201,47 +202,59 @@ export function MorningRecap({ sessionId, onDismiss }: Props) {
           </div>
 
           <div className="mt-6">
-            <label className="text-sm font-bold text-ink">Anything else?</label>
+            <div className="eyebrow mb-2">ANYTHING ELSE</div>
             <textarea
               value={note}
               onChange={(e) => setNote(e.target.value)}
-              placeholder="Optional — sleep quality, what worked, what didn't…"
+              placeholder="what you'd do differently. optional."
               rows={3}
-              className="mt-2 w-full px-4 py-3 rounded-2xl bg-bg-elev border border-line text-ink placeholder:text-ink-dim focus:border-accent focus:bg-white focus:outline-none focus:ring-4 focus:ring-accent/15 transition resize-none"
+              className="w-full px-4 py-3 rounded-[14px] bg-bg-card border border-line text-ink placeholder:text-ink-dim placeholder:font-mono placeholder:text-[12px] focus:border-accent focus:outline-none focus:ring-4 focus:ring-accent/15 transition resize-none"
             />
           </div>
 
-          <div className="mt-6 space-y-2">
-            <Button className="w-full" size="lg" onClick={submit} disabled={rating === null}>
-              <Check className="h-5 w-5 mr-1.5" />
-              Save recap
-            </Button>
-            <button
-              onClick={onDismiss}
-              className="w-full h-11 text-sm font-semibold text-ink-muted hover:text-ink transition"
-            >
-              Skip for now
-            </button>
-          </div>
-
-          <p className="text-xs text-ink-dim text-center mt-4 leading-relaxed">
-            Your feedback trains a personal model — the more recaps you log,
-            the more accurate your forecasts get.
-          </p>
+          <button
+            type="button"
+            onClick={submit}
+            disabled={rating === null}
+            className="w-full h-[52px] mt-6 rounded-full bg-ink text-bg-card font-display italic text-[17px] disabled:opacity-40 disabled:cursor-not-allowed hover:brightness-110 active:brightness-95 transition min-tap"
+          >
+            Save the verdict
+          </button>
+          <button
+            type="button"
+            onClick={onDismiss}
+            className="w-full h-11 mt-1.5 font-mono text-[11px] tracking-[0.14em] uppercase text-ink-dim hover:text-ink transition"
+          >
+            Skip for now
+          </button>
         </div>
       </motion.div>
     </AnimatePresence>
   );
 }
 
-function Stat({ label, value, sub }: { label: string; value: string; sub?: string }) {
+function MetricCell({
+  label,
+  value,
+  sub,
+}: {
+  label: string;
+  value: string;
+  sub?: string;
+}) {
   return (
     <div>
-      <div className="text-[10px] font-semibold text-ink-muted">{label}</div>
-      <div className="text-base font-bold text-ink tabular-nums tracking-tight mt-0.5">
+      <div className="font-mono text-[9px] tracking-[0.18em] uppercase text-ink-dim">
+        {label}
+      </div>
+      <div className="font-display tabular-nums text-[22px] text-ink leading-none mt-1.5">
         {value}
       </div>
-      {sub && <div className="text-[10px] text-ink-dim tabular-nums">{sub}</div>}
+      {sub && (
+        <div className="font-mono text-[10px] text-ink-dim tabular-nums mt-0.5 tracking-tight">
+          {sub}
+        </div>
+      )}
     </div>
   );
 }
