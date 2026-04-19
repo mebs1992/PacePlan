@@ -1,6 +1,5 @@
 import type { CutoffResult } from '@/lib/bac';
 import { formatClockWithDay } from '@/lib/time';
-import { AlertTriangle, Clock, CheckCircle2 } from 'lucide-react';
 import { motion } from 'framer-motion';
 
 type Props = { result: CutoffResult; now: number };
@@ -11,10 +10,12 @@ export function CutoffBanner({ result, now }: Props) {
       <motion.div
         initial={{ opacity: 0, y: 6 }}
         animate={{ opacity: 1, y: 0 }}
-        className="rounded-2xl p-3 surface flex items-center gap-3"
+        className="rounded-[16px] border border-line bg-bg-card px-4 py-3"
       >
-        <CheckCircle2 className="h-5 w-5 text-ink-dim" />
-        <div className="text-sm text-ink-muted">No drinks logged yet.</div>
+        <div className="eyebrow">LEDGER</div>
+        <div className="font-display italic text-[15px] text-ink-muted mt-0.5 leading-snug">
+          Nothing logged yet.
+        </div>
       </motion.div>
     );
   }
@@ -24,18 +25,14 @@ export function CutoffBanner({ result, now }: Props) {
       <motion.div
         initial={{ opacity: 0, y: 6 }}
         animate={{ opacity: 1, y: 0 }}
-        className="relative overflow-hidden rounded-2xl p-3 flex items-start gap-3 bg-rose-50 border border-rose-200"
+        className="rounded-[16px] border border-line bg-bg-card px-4 py-3"
       >
-        <div className="animate-breathe">
-          <AlertTriangle className="h-5 w-5 text-risk-red mt-0.5" />
+        <div className="eyebrow text-risk-red">STOP DRINKING</div>
+        <div className="font-display text-[18px] leading-[1.2] text-ink mt-0.5">
+          <span className="hb-italic text-risk-red">Hangover risk is high.</span>
         </div>
-        <div>
-          <div className="text-sm font-bold text-risk-red">
-            Stop drinking — hangover risk high
-          </div>
-          <div className="text-xs text-ink-muted mt-0.5 tabular-nums">
-            Projected peak {result.bacAtSessionEnd.toFixed(3)}% BAC by session end.
-          </div>
+        <div className="font-mono text-[11px] text-ink-dim mt-1.5 tabular-nums tracking-tight">
+          projected peak · {result.bacAtSessionEnd.toFixed(3)}% by session end
         </div>
       </motion.div>
     );
@@ -45,16 +42,17 @@ export function CutoffBanner({ result, now }: Props) {
     <motion.div
       initial={{ opacity: 0, y: 6 }}
       animate={{ opacity: 1, y: 0 }}
-      className="rounded-2xl p-3 flex items-start gap-3 bg-amber-50 border border-amber-200"
+      className="rounded-[16px] border border-line bg-bg-card px-4 py-3"
     >
-      <Clock className="h-5 w-5 text-risk-yellow mt-0.5" />
-      <div>
-        <div className="text-sm font-bold text-amber-900">
-          Last drink by {formatClockWithDay(result.cutoffAt, now)}
-        </div>
-        <div className="text-xs text-amber-900/70 mt-0.5">
-          To stay below the hangover threshold by session end.
-        </div>
+      <div className="eyebrow text-risk-yellow">LAST CALL</div>
+      <div className="font-display text-[18px] leading-[1.2] text-ink mt-0.5">
+        Last drink by{' '}
+        <span className="hb-italic text-risk-yellow">
+          {formatClockWithDay(result.cutoffAt, now)}.
+        </span>
+      </div>
+      <div className="font-mono text-[11px] text-ink-dim mt-1.5 tracking-tight">
+        to stay below the hangover threshold
       </div>
     </motion.div>
   );
