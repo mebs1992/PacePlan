@@ -2,26 +2,29 @@
 
 ## Overview
 
-A full UI redesign of the existing **hangover-buddy** Expo/React Native app (tracks alcohol intake and predicts BAC, hangover risk, and driving legality). The redesign reframes the app as a **nocturnal editorial companion** — quiet, calm, a little indulgent — rather than a clinical health tracker. It keeps all existing functionality (profile, session tracking, BAC math, history, morning recap) and adds a more opinionated information hierarchy plus alternative BAC visualizations.
+A full UI redesign of the existing **hangover-buddy** web app (Vite + React + TypeScript + Tailwind) that tracks alcohol intake and predicts BAC, hangover risk, and driving legality. The redesign reframes the app as a **nocturnal editorial companion** — quiet, calm, a little indulgent — rather than a clinical health tracker. It keeps all existing functionality (profile, session tracking, BAC math, history, morning recap) and adds a more opinionated information hierarchy plus alternative BAC visualizations.
 
 ## About the Design Files
 
 The files in this bundle are **design references created in HTML** — a single self-contained interactive prototype (`Hangover Buddy.html`) showing intended look and behavior. **It is not production code to copy directly.**
 
-The task is to **recreate the designs in the existing codebase's environment** (Expo / React Native / TypeScript with the existing `/app`, `/components`, `/lib` structure), using the project's established patterns:
+The task is to **recreate the designs in the existing codebase's environment** — **Vite + React + TypeScript + Tailwind CSS**, web — using the project's established patterns:
 
 - Existing `src/lib/bac.ts` math must be preserved — the redesign depends on it unchanged.
-- Existing Zustand store shape (`src/state/...`) should be reused or lightly extended.
-- React Native equivalents should replace HTML/CSS: `<View>`, `<Text>`, `<Pressable>`, `Animated` / `react-native-reanimated` for motion, `react-native-svg` for the curve / ring / orb visualizations, Expo Router for navigation.
-- Fonts: use `expo-font` to load **Fraunces** (display serif) and **JetBrains Mono** (labels). Body text can stay system-default or use Inter if already loaded.
+- Existing store (Zustand or equivalent under `src/state/` / `src/store/`) should be reused or lightly extended.
+- Use plain web primitives: `<div>`, `<button>`, `<input>`. Use inline SVG for the curve/ring/orb visualizations (the prototype already does this — those SVGs can be ported almost verbatim).
+- Styling: migrate the design tokens below into `tailwind.config.ts` (extend `theme.colors`, `fontFamily`, `boxShadow`, `borderRadius`). Do **not** keep the prototype's inline CSS variables — convert to Tailwind classes.
+- Motion: use `framer-motion` if already in deps, otherwise Tailwind's `transition-*` utilities + `@keyframes` for the advisory cross-fade and sheet slide-up.
+- Fonts: load **Fraunces** and **JetBrains Mono** from Google Fonts via `<link>` in `index.html` or `@import` in the global CSS. Register in `tailwind.config.ts` under `fontFamily.display` (Fraunces) and `fontFamily.mono` (JetBrains Mono).
+- **Mobile-first.** The prototype is framed in a 402×874 iOS chrome for visual context, but the real app is a responsive web app. The design targets phone widths (≥375px); tablet/desktop should cap content width around 480px and center it on a darker canvas.
 
 ## Fidelity
 
-**High-fidelity.** All colors, typography, spacing, and interaction states are intentional and finalized. The developer should recreate the UI pixel-perfectly using React Native primitives. Values in the Design Tokens section below are the source of truth.
+**High-fidelity.** All colors, typography, spacing, and interaction states are intentional and finalized. The developer should recreate the UI pixel-perfectly using React + Tailwind. Values in the Design Tokens section below are the source of truth and should be encoded into `tailwind.config.ts`.
 
 ## Screens / Views
 
-All screens are shown inside an iOS 402×874 frame in the prototype. In the real app they should fill the device safe area.
+All screens are shown inside an iOS 402×874 frame in the prototype for visual context. In the real web app they should fill the viewport on phone widths and be centered in a max-width container (~480px) on larger screens.
 
 ### 1. Onboarding (first-launch only)
 
@@ -106,13 +109,13 @@ The primary screen. Two states:
 
 ## Interactions & Behavior
 
-- **Navigation:** Bottom tab bar with three items (Session / History / Settings). Hidden on onboarding.
-- **Sheet presentation:** Tracker + Confirm End + Morning Recap slide up from the bottom; backdrop fades to 60% black; spring animation (~260ms, ease-out).
-- **BAC recomputation:** The hero screen calls `computeBacAt({profile, drinks, food, at: Date.now()})` on mount and on a 30-second interval while an active session exists.
-- **Night curve:** recompute sampled array only when drinks/food change, not every tick.
-- **Haptics:** light impact on every quick-add commit; medium impact on "End session" confirm.
-- **Advisory color transitions:** cross-fade between green/yellow/red when status changes (200ms).
-- **Log row tap:** opens bottom actionsheet with `Edit time` / `Remove`.
+- **Navigation:** Bottom tab bar with three items (Session / History / Settings), fixed to the bottom of the viewport with `position: fixed`. Hidden on onboarding. Use **React Router** (or whatever router the repo currently uses) to drive routing; screens live at `/`, `/history`, `/settings`.
+- **Sheet presentation:** Tracker + Confirm End + Morning Recap slide up from the bottom. Use `framer-motion`'s `AnimatePresence` with a `y: 100% → 0` transition (`duration: 0.26, ease: [0.22, 1, 0.36, 1]`), backdrop `opacity: 0 → 0.6` (black). If `framer-motion` isn't in deps, use Tailwind `translate-y` + `transition-transform` and a `useState` mount flag.
+- **BAC recomputation:** The hero screen calls `computeBacAt({profile, drinks, food, at: Date.now()})` on mount and on a 30-second `setInterval` while an active session exists.
+- **Night curve:** recompute the sampled point array with `useMemo(() => sampleCurve(...), [drinks, food, startedAt])` — not on every tick.
+- **Advisory color transitions:** cross-fade between green/yellow/red using a `transition-colors duration-200` on the text color class.
+- **Log row tap:** opens a small popover/menu anchored to the row with `Edit time` / `Remove` actions.
+- **Haptics:** skip on web (or feature-detect `navigator.vibrate(10)` for a subtle tap on quick-add commit if desired).
 
 ## State Management
 
@@ -211,8 +214,18 @@ New preference fields the UI reads: `visual` ∈ {`curve`,`orb`,`ring`,`numeric`
 
 ## Assets
 
-- **Fonts:** Google Fonts — `Fraunces` (opsz 9..144, weights 300–600, italic), `JetBrains Mono` (400/500). Load via `expo-font`.
-- **Icons:** Three custom line icons for the bottom nav (Session = bottle, History = clock, Settings = gear). 1.6px stroke, 18×18 viewBox. SVGs are inline in `Hangover Buddy.html` — copy the paths into `react-native-svg` components.
+- **Fonts:** Google Fonts — `Fraunces` (opsz 9..144, weights 300–600, italic), `JetBrains Mono` (400/500). Load via a `<link>` in `index.html`:
+  ```html
+  <link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,300..600;1,9..144,300..600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+  ```
+  Then in `tailwind.config.ts`:
+  ```ts
+  fontFamily: {
+    display: ['Fraunces', 'serif'],
+    mono: ['"JetBrains Mono"', 'monospace'],
+  }
+  ```
+- **Icons:** Three custom line icons for the bottom nav (Session = bottle, History = clock, Settings = gear). 1.6px stroke, 18×18 viewBox. Inline SVGs are in `Hangover Buddy.html` — copy the `<path>`s into small `.tsx` icon components.
 - **No other images.** The design deliberately uses no photography or illustration.
 
 ## Files
@@ -229,25 +242,32 @@ New preference fields the UI reads: `visual` ∈ {`curve`,`orb`,`ring`,`numeric`
 
 ## Screenshots
 
-Visual references for the Session hero across palettes, visualizations, and session states. All in `screenshots/`.
+Visual references covering the Session hero across palettes/visualizations, plus History, Settings, and Onboarding. All in `screenshots/`.
 
-| File | Palette | Visualization | State |
-|---|---|---|---|
-| `01-session-paper-midnight.png` | Paper (light) | Night curve | Mid-night, 4 drinks, BAC 0.056 — "Ease up" |
-| `02-session-paper-overlimit.png` | Paper | Night curve | 6 drinks, over the line — "Do not drive" |
-| `03-session-paper-empty-state.png` | Paper | Night curve | Session just started — no drinks |
-| `04-session-paper-orb.png` | Paper | **Liquid orb** | Midnight state |
-| `05-session-paper-ring.png` | Paper | **Tick ring** | Midnight state |
-| `06-session-paper-numeric.png` | Paper | **Numeric only** | Midnight state |
-| `07-session-dusk-curve.png` | **Dusk (dark)** | Night curve | Midnight state — original default palette |
-| `08-session-neon-noir.png` | **Neon noir** | Night curve | Midnight state — experimental |
+| File | Screen | Palette | Visualization | State |
+|---|---|---|---|---|
+| `01-session-paper-midnight.png` | Session | Paper (light) | Night curve | Mid-night, 4 drinks, BAC 0.056 — "Ease up" |
+| `02-session-paper-overlimit.png` | Session | Paper | Night curve | 6 drinks, over the line — "Do not drive" |
+| `03-session-paper-empty-state.png` | Session | Paper | Night curve | Session just started — no drinks |
+| `04-session-paper-orb.png` | Session | Paper | **Liquid orb** | Midnight state |
+| `05-session-paper-ring.png` | Session | Paper | **Tick ring** | Midnight state |
+| `06-session-paper-numeric.png` | Session | Paper | **Numeric only** | Midnight state |
+| `07-session-dusk-curve.png` | Session | **Dusk (dark)** | Night curve | Midnight state |
+| `08-session-neon-noir.png` | Session | **Neon noir** | Night curve | Midnight state |
+| `09-history.png` | History | Paper | — | One completed session with pending recap |
+| `10-settings.png` | Settings | Paper | — | Profile + "About the math" + Data |
+| `11-onboarding.png` | Onboarding | Paper | — | Step 1 of 4 — "What should we call you tomorrow at 9 a.m.?" |
+
+**Not screenshotted — see spec sections above:** Tracker Sheet (§3), Confirm End Sheet (§4), Morning Recap (§5). These are modal overlays; the written specs in this README are the source of truth, and the prototype HTML will render them live if you tap `+ Drink` / `End session` / complete a session.
 
 The Paper palette is the recommended default based on the user's tweaks. Dusk and Neon are alternatives — don't ship all three unless there's a theme-switcher feature.
 
 ## Implementation Notes
 
-1. **Do the BAC engine first.** It's already done in `src/lib/bac.ts`; just verify the redesign imports it.
-2. **Build the Session screen second.** It's the heart of the app and exercises most of the design system.
-3. **Fonts before pixel-tuning.** Fraunces' optical-size + italic is load-bearing for the aesthetic; installing them late means re-measuring everything.
-4. **Simulated states.** The prototype's Tweaks panel has four "sim states" (`dry`, `midnight`, `overlimit`, `real`). These are useful dev-time seeders — port them to a `__DEV__`-only debug menu so QA can reproduce each advisory state without drinking.
-5. **Safe-area & keyboard.** Tracker sheet inputs must handle keyboard avoidance; the iOS frame in the prototype doesn't model this.
+1. **Verify BAC engine first.** `src/lib/bac.ts` already exists; just verify the redesign imports work unchanged.
+2. **Encode tokens into `tailwind.config.ts` before building screens.** Extend `theme.colors` with the three palettes (see below for how to handle palette switching with CSS variables), set `fontFamily.display` / `fontFamily.mono`, register the spacing and radius scales.
+3. **Palette switching:** easiest is CSS custom properties on `<html>` or `<body>` (e.g. `data-palette="dusk"` selector), with Tailwind's `colors.bg: 'rgb(var(--bg) / <alpha-value>)'` pattern. Store active palette in the user-preferences slice.
+4. **Build the Session screen second.** It's the heart of the app and exercises most of the design system.
+5. **Fonts before pixel-tuning.** Fraunces' optical-size + italic is load-bearing for the aesthetic; installing them late means re-measuring everything.
+6. **Simulated states.** The prototype's Tweaks panel has four "sim states" (`dry`, `midnight`, `overlimit`, `real`). These are useful dev-time seeders — port them to a debug menu gated behind `import.meta.env.DEV` so QA can reproduce each advisory state.
+7. **Responsive cap.** Wrap the whole app in a `max-w-[480px] mx-auto min-h-screen` container so it looks intentional on desktop. The outer viewport can be `bg-black` regardless of palette.
