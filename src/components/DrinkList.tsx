@@ -16,14 +16,12 @@ export function DrinkList({ drinks, now, onRemove }: Props) {
   return (
     <Card>
       <div className="flex items-baseline justify-between mb-2">
-        <h2 className="text-[11px] font-semibold text-ink-muted uppercase tracking-[0.2em]">
-          Drinks
-        </h2>
+        <h2 className="text-base font-semibold text-ink">Drinks</h2>
         <div className="text-xs text-ink-muted tabular-nums">
           {drinks.length} · {total.toFixed(1)} std
         </div>
       </div>
-      <ul className="space-y-1">
+      <ul>
         <AnimatePresence initial={false}>
           {drinks
             .slice()
@@ -36,10 +34,10 @@ export function DrinkList({ drinks, now, onRemove }: Props) {
                 animate={{ opacity: 1, x: 0 }}
                 exit={{ opacity: 0, x: 16, height: 0 }}
                 transition={{ duration: 0.2 }}
-                className="flex items-center justify-between py-2 border-b border-white/5 last:border-0"
+                className="flex items-center justify-between py-2.5 border-b border-line last:border-0"
               >
                 <div className="flex flex-col">
-                  <span className="text-ink text-sm font-medium">{d.label}</span>
+                  <span className="text-ink text-sm font-semibold">{d.label}</span>
                   <span className="text-[11px] text-ink-muted tabular-nums">
                     {d.standardDrinks.toFixed(1)} std · {formatRelative(d.at, now)}
                   </span>

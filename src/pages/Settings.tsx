@@ -10,16 +10,14 @@ export function SettingsPage() {
 
   return (
     <div className="max-w-md mx-auto p-4 pb-28 space-y-3">
-      <header className="mt-6 mb-2">
-        <h1 className="text-3xl font-bold text-ink">Settings</h1>
+      <header className="mt-6 mb-5">
+        <h1 className="text-3xl font-bold text-ink tracking-tight">Settings</h1>
       </header>
 
       <Card>
-        <h2 className="text-[11px] font-semibold text-ink-muted uppercase tracking-[0.2em] mb-3">
-          Profile
-        </h2>
+        <h2 className="text-sm font-bold text-ink mb-3">Profile</h2>
         {profile ? (
-          <ul className="text-ink text-sm space-y-2">
+          <ul className="divide-y divide-line">
             {[
               ['Name', profile.name],
               ['Sex', profile.sex],
@@ -27,9 +25,9 @@ export function SettingsPage() {
               ['Height', `${profile.heightCm} cm`],
               ['Weight', `${profile.weightKg} kg`],
             ].map(([k, v]) => (
-              <li key={k} className="flex items-center justify-between">
-                <span className="text-ink-muted">{k}</span>
-                <span className="capitalize">{v}</span>
+              <li key={k} className="flex items-center justify-between py-2.5">
+                <span className="text-sm text-ink-muted">{k}</span>
+                <span className="text-sm text-ink font-semibold capitalize">{v}</span>
               </li>
             ))}
           </ul>
@@ -39,19 +37,16 @@ export function SettingsPage() {
       </Card>
 
       <Card>
-        <h2 className="text-[11px] font-semibold text-ink-muted uppercase tracking-[0.2em] mb-3">
-          About
-        </h2>
+        <h2 className="text-sm font-bold text-ink mb-3">About</h2>
         <p className="text-ink-muted text-sm leading-relaxed">
           Hangover Buddy estimates blood alcohol concentration using the Widmark formula
           with food-modulated absorption. Standard drink size: 10 g pure alcohol
-          (Australia). Estimates are approximate and not a substitute for sober
-          judgment.
+          (Australia). Estimates are approximate and not a substitute for sober judgement.
         </p>
         <div className="mt-3 flex flex-wrap gap-2">
           <a
             href="tel:131114"
-            className="px-3 py-1.5 rounded-lg bg-white/5 border border-white/10 text-ink text-sm"
+            className="px-3 py-1.5 rounded-xl bg-bg-elev border border-line text-ink text-sm font-semibold"
           >
             Lifeline 13 11 14
           </a>
@@ -59,7 +54,7 @@ export function SettingsPage() {
             href="https://drinkwise.org.au/"
             target="_blank"
             rel="noreferrer"
-            className="px-3 py-1.5 rounded-lg bg-white/5 border border-white/10 text-ink text-sm"
+            className="px-3 py-1.5 rounded-xl bg-bg-elev border border-line text-ink text-sm font-semibold"
           >
             DrinkWise.org.au
           </a>
@@ -67,9 +62,7 @@ export function SettingsPage() {
       </Card>
 
       <Card>
-        <h2 className="text-[11px] font-semibold text-ink-muted uppercase tracking-[0.2em] mb-3">
-          Data
-        </h2>
+        <h2 className="text-sm font-bold text-ink mb-3">Data</h2>
         <div className="space-y-2">
           <Button
             variant="secondary"

@@ -9,8 +9,10 @@ export function Card({ className, variant = 'default', ...rest }: Props) {
   return (
     <div
       className={cn(
-        'rounded-2xl p-4 shadow-card',
-        variant === 'default' ? 'glass' : 'bg-bg-solid/60 border border-white/5',
+        'rounded-2xl p-4',
+        variant === 'default'
+          ? 'bg-bg-card border border-line shadow-card'
+          : 'bg-bg-elev border border-line',
         className
       )}
       {...rest}

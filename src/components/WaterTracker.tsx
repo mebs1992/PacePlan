@@ -17,21 +17,17 @@ export function WaterTracker({ glasses, drinks, behind, onAdd }: Props) {
   return (
     <Card>
       <div className="flex items-center justify-between mb-3">
-        <h2 className="text-[11px] font-semibold text-ink-muted uppercase tracking-[0.2em]">
-          Water
-        </h2>
+        <h2 className="text-base font-semibold text-ink">Water</h2>
         <div className="text-xs text-ink-muted tabular-nums">
           {glasses} / {drinks}
         </div>
       </div>
 
-      <div className="relative h-3 rounded-full bg-white/5 overflow-hidden mb-3">
+      <div className="relative h-2.5 rounded-full bg-bg-elev border border-line overflow-hidden mb-3">
         <motion.div
           className={cn(
             'absolute inset-y-0 left-0 rounded-full',
-            behind
-              ? 'bg-gradient-to-r from-risk-yellow to-risk-red'
-              : 'bg-gradient-to-r from-cyan-400 to-blue-500'
+            behind ? 'bg-risk-yellow' : 'bg-sky-500'
           )}
           initial={{ width: 0 }}
           animate={{ width: `${pct * 100}%` }}
@@ -42,7 +38,7 @@ export function WaterTracker({ glasses, drinks, behind, onAdd }: Props) {
       <div className="flex items-center justify-between">
         <div className="text-xs text-ink-muted">
           {behind ? (
-            <span className="text-risk-yellow">You're behind — drink water.</span>
+            <span className="text-risk-yellow font-semibold">You're behind — drink water.</span>
           ) : drinks === 0 ? (
             'Tap to log a glass anytime.'
           ) : (
@@ -50,11 +46,11 @@ export function WaterTracker({ glasses, drinks, behind, onAdd }: Props) {
           )}
         </div>
         <motion.button
-          whileTap={{ scale: 0.92 }}
+          whileTap={{ scale: 0.94 }}
           onClick={onAdd}
           className={cn(
-            'flex items-center gap-1.5 px-4 h-10 rounded-xl font-semibold text-sm min-tap',
-            'bg-gradient-to-br from-cyan-400 to-blue-500 text-white shadow-[0_6px_20px_-6px_rgba(34,211,238,0.6)]',
+            'flex items-center gap-1.5 px-4 h-10 rounded-xl font-semibold text-sm min-tap transition',
+            'bg-sky-500 text-white shadow-[0_6px_16px_-8px_rgba(14,165,233,0.6)] hover:bg-sky-600 active:bg-sky-700',
             behind && 'animate-breathe'
           )}
         >

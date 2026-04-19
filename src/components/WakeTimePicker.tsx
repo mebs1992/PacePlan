@@ -44,19 +44,17 @@ export function WakeTimePicker({ wakeAtMs, now, onChange }: Props) {
   return (
     <Card>
       <div className="flex items-center justify-between">
-        <div className="flex items-center gap-2.5">
-          <div className="h-9 w-9 rounded-xl bg-white/5 border border-white/10 flex items-center justify-center">
+        <div className="flex items-center gap-3">
+          <div className="h-10 w-10 rounded-xl bg-accent/10 flex items-center justify-center">
             {wakeAtMs ? (
-              <AlarmClock className="h-4 w-4 text-accent" />
+              <AlarmClock className="h-5 w-5 text-accent" />
             ) : (
-              <Sunrise className="h-4 w-4 text-ink-muted" />
+              <Sunrise className="h-5 w-5 text-ink-muted" />
             )}
           </div>
           <div>
-            <div className="text-[11px] uppercase tracking-[0.2em] text-ink-muted">
-              Wake up
-            </div>
-            <div className="text-ink text-sm font-semibold mt-0.5">{label}</div>
+            <div className="text-xs text-ink-muted">Wake up</div>
+            <div className="text-ink text-base font-semibold mt-0.5">{label}</div>
           </div>
         </div>
         {!editing && (
@@ -65,7 +63,7 @@ export function WakeTimePicker({ wakeAtMs, now, onChange }: Props) {
               setDraft(toLocalInputValue(wakeAtMs ?? defaultWake(now)));
               setEditing(true);
             }}
-            className="flex items-center gap-1.5 text-ink-muted text-sm h-10 px-3 rounded-xl bg-white/5 hover:bg-white/10 border border-white/10 min-tap transition"
+            className="flex items-center gap-1.5 text-ink-muted text-sm h-10 px-3 rounded-xl bg-bg-elev hover:bg-white border border-line min-tap transition"
           >
             <Pencil className="h-3.5 w-3.5" />
             Edit
@@ -79,7 +77,7 @@ export function WakeTimePicker({ wakeAtMs, now, onChange }: Props) {
             type="datetime-local"
             value={draft}
             onChange={(e) => setDraft(e.target.value)}
-            className="w-full h-11 px-3 rounded-xl bg-white/10 border border-white/10 text-ink"
+            className="w-full h-11 px-3 rounded-xl bg-white border border-line text-ink focus:border-accent focus:outline-none focus:ring-4 focus:ring-accent/15"
           />
           <div className="flex items-center gap-2">
             <Button
@@ -106,7 +104,7 @@ export function WakeTimePicker({ wakeAtMs, now, onChange }: Props) {
               <X className="h-4 w-4" />
             </Button>
           </div>
-          <p className="text-[11px] text-ink-dim">
+          <p className="text-xs text-ink-dim">
             Fewer drinks if you have to wake up earlier — we factor this into recommendations.
           </p>
         </div>
