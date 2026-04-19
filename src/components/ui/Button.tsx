@@ -11,13 +11,13 @@ type Props = ButtonHTMLAttributes<HTMLButtonElement> & {
 
 const variants: Record<Variant, string> = {
   primary:
-    'bg-accent text-white shadow-fab hover:bg-[#F04A4F] active:bg-[#E14A4F] active:shadow-press active:scale-[0.98]',
+    'bg-accent text-white shadow-fab hover:bg-accent/90 active:bg-accent/80 active:shadow-press active:scale-[0.98]',
   secondary:
-    'bg-white text-ink border border-line hover:bg-bg-elev active:bg-bg-deep active:scale-[0.98]',
+    'bg-bg-card text-ink border border-line hover:bg-bg-elev active:bg-bg-deep active:scale-[0.98]',
   ghost:
     'bg-transparent text-ink hover:bg-ink/5 active:bg-ink/10 active:scale-[0.98]',
   danger:
-    'bg-risk-red text-white shadow-[0_10px_24px_-8px_rgba(229,72,77,0.45),0_2px_6px_rgba(26,21,18,0.08)] hover:bg-[#D43C41] active:scale-[0.98]',
+    'bg-risk-red text-white shadow-[0_10px_24px_-8px_rgba(140,58,42,0.45),0_2px_6px_rgba(26,23,18,0.08)] hover:bg-risk-red/90 active:scale-[0.98]',
 };
 
 const sizes: Record<Size, string> = {
