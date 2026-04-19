@@ -1,0 +1,2588 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Hangover Buddy — Redesign</title>
+<style>
+/* Hangover Buddy — dark nocturnal editorial
+   Palettes are swappable via [data-palette] on <body>. */
+
+:root {
+  --font-display: 'Fraunces', 'Cormorant Garamond', 'Times New Roman', serif;
+  --font-sans: 'Inter', -apple-system, system-ui, sans-serif;
+  --font-mono: 'JetBrains Mono', 'SF Mono', ui-monospace, monospace;
+
+  /* dusk palette (default) */
+  --bg:        #0B0D10;
+  --bg-2:      #14181D;
+  --bg-3:      #1C2128;
+  --line:      #242B33;
+  --line-2:    #2F3842;
+  --ink:       #F2EEE6;
+  --ink-2:     #B7B1A6;
+  --ink-3:     #7B7468;
+  --accent:    #E8C27A;   /* warm amber, whiskey */
+  --accent-2:  #B45B4F;   /* rust */
+  --green:     #7FB68A;
+  --yellow:    #E8C27A;
+  --red:       #D96A6A;
+  --blue:      #7BA6C4;
+
+  --radius-sm: 10px;
+  --radius-md: 18px;
+  --radius-lg: 26px;
+}
+
+body[data-palette="neon"] {
+  --bg:        #07080B;
+  --bg-2:      #0E1118;
+  --bg-3:      #161B25;
+  --line:      #1F2637;
+  --line-2:    #2B3449;
+  --ink:       #EEF1FA;
+  --ink-2:     #A5ADC2;
+  --ink-3:     #6A7185;
+  --accent:    #7CE7C7;   /* mint */
+  --accent-2:  #C28BFF;   /* violet */
+  --green:     #7CE7C7;
+  --yellow:    #F3D35A;
+  --red:       #FF6B7A;
+  --blue:      #8DB8FF;
+}
+
+body[data-palette="paper"] {
+  --bg:        #F4EFE4;
+  --bg-2:      #EBE3D2;
+  --bg-3:      #E0D6C0;
+  --line:      #D4C7A8;
+  --line-2:    #C2B391;
+  --ink:       #1A1712;
+  --ink-2:     #5D5547;
+  --ink-3:     #8A8374;
+  --accent:    #8C3A2A;
+  --accent-2:  #3A5E4C;
+  --green:     #3A5E4C;
+  --yellow:    #B28034;
+  --red:       #8C3A2A;
+  --blue:      #4C6B8A;
+}
+
+body[data-density="cozy"] { --pad-card: 20px; --gap-md: 14px; }
+body[data-density="compact"] { --pad-card: 12px; --gap-md: 8px; }
+body { --pad-card: 16px; --gap-md: 12px; }
+
+* { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+html, body { margin: 0; padding: 0; height: 100%; }
+body {
+  background: #0a0a0a;
+  color: var(--ink);
+  font-family: var(--font-sans);
+  -webkit-font-smoothing: antialiased;
+  font-feature-settings: 'ss01','cv11';
+  letter-spacing: -0.005em;
+}
+button { background: none; border: 0; color: inherit; padding: 0; cursor: pointer; font: inherit; }
+input, textarea, select { font: inherit; color: inherit; }
+
+/* scene / page inside device */
+.hb-app {
+  width: 100%; height: 100%;
+  background: var(--bg);
+  color: var(--ink);
+  overflow: hidden;
+  position: relative;
+  font-family: var(--font-sans);
+}
+.hb-scroll {
+  height: 100%;
+  overflow-y: auto;
+  overflow-x: hidden;
+  padding: 58px 20px 120px;   /* top clears status bar, bottom clears nav */
+  scrollbar-width: none;
+}
+.hb-scroll::-webkit-scrollbar { display: none; }
+
+/* typographic primitives */
+.display { font-family: var(--font-display); font-weight: 400; letter-spacing: -0.03em; }
+.eyebrow { font-family: var(--font-mono); font-size: 10px; letter-spacing: 0.18em; text-transform: uppercase; color: var(--ink-3); }
+.mono { font-family: var(--font-mono); font-variant-numeric: tabular-nums; }
+.num { font-variant-numeric: tabular-nums; }
+
+.hb-h1 { font-family: var(--font-display); font-weight: 400; font-size: 44px; line-height: 1.02; letter-spacing: -0.03em; color: var(--ink); margin: 0; }
+.hb-italic { font-style: italic; }
+
+/* cards */
+.hb-card {
+  background: var(--bg-2);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-md);
+  padding: var(--pad-card);
+}
+.hb-card-inset {
+  background: var(--bg-3);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-sm);
+  padding: 12px;
+}
+
+/* buttons */
+.hb-btn {
+  display: inline-flex; align-items: center; justify-content: center; gap: 8px;
+  min-height: 48px; padding: 0 18px;
+  border-radius: 14px;
+  font-weight: 600; font-size: 15px; letter-spacing: -0.01em;
+  transition: transform .1s ease, background .15s ease, border-color .15s ease;
+}
+.hb-btn:active { transform: scale(0.98); }
+.hb-btn-primary {
+  background: var(--ink);
+  color: var(--bg);
+}
+.hb-btn-ghost {
+  background: transparent;
+  color: var(--ink-2);
+  border: 1px solid var(--line-2);
+}
+.hb-btn-danger {
+  background: var(--red);
+  color: #fff;
+}
+.hb-btn[disabled] { opacity: 0.4; pointer-events: none; }
+
+/* chips / pills */
+.hb-chip {
+  display: inline-flex; align-items: center; gap: 6px;
+  padding: 6px 10px;
+  border: 1px solid var(--line-2);
+  border-radius: 999px;
+  font-family: var(--font-mono);
+  font-size: 11px; letter-spacing: 0.04em;
+  color: var(--ink-2);
+}
+
+/* bottom nav */
+.hb-nav {
+  position: absolute;
+  left: 14px; right: 14px; bottom: 20px;
+  background: rgba(20,24,29,0.78);
+  backdrop-filter: blur(20px) saturate(180%);
+  -webkit-backdrop-filter: blur(20px) saturate(180%);
+  border: 1px solid var(--line);
+  border-radius: 24px;
+  display: flex;
+  align-items: stretch;
+  padding: 6px;
+  z-index: 30;
+}
+body[data-palette="paper"] .hb-nav { background: rgba(244,239,228,0.82); }
+.hb-nav-item {
+  flex: 1;
+  display: flex; flex-direction: column; align-items: center; justify-content: center;
+  gap: 2px;
+  padding: 8px 0;
+  border-radius: 18px;
+  color: var(--ink-3);
+  font-family: var(--font-mono);
+  font-size: 10px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  transition: background .15s, color .15s;
+}
+.hb-nav-item.active {
+  background: var(--bg-3);
+  color: var(--ink);
+}
+
+/* sheets */
+.hb-sheet-backdrop {
+  position: absolute; inset: 0;
+  background: rgba(0,0,0,0.55);
+  backdrop-filter: blur(3px);
+  z-index: 40;
+  animation: fade .22s ease both;
+}
+.hb-sheet {
+  position: absolute; left: 0; right: 0; bottom: 0;
+  background: var(--bg-2);
+  border-top-left-radius: 28px;
+  border-top-right-radius: 28px;
+  border-top: 1px solid var(--line);
+  padding: 14px 18px 28px;
+  max-height: 86%;
+  overflow-y: auto;
+  z-index: 41;
+  animation: slide-up .3s cubic-bezier(.32,.72,0,1) both;
+}
+.hb-sheet-grip {
+  width: 36px; height: 4px; border-radius: 4px;
+  background: var(--line-2);
+  margin: 0 auto 10px;
+}
+@keyframes slide-up {
+  from { transform: translateY(100%); }
+  to { transform: translateY(0); }
+}
+@keyframes fade { from { opacity: 0 } to { opacity: 1 } }
+
+/* inputs */
+.hb-input {
+  width: 100%;
+  background: var(--bg-3);
+  border: 1px solid var(--line);
+  color: var(--ink);
+  border-radius: 12px;
+  padding: 0 14px;
+  height: 44px;
+  font-size: 15px;
+}
+.hb-input:focus { outline: none; border-color: var(--accent); }
+.hb-textarea {
+  width: 100%;
+  background: var(--bg-3);
+  border: 1px solid var(--line);
+  color: var(--ink);
+  border-radius: 16px;
+  padding: 12px 14px;
+  font-size: 15px;
+  resize: none;
+  font-family: inherit;
+}
+.hb-textarea:focus { outline: none; border-color: var(--accent); }
+
+/* segmented control */
+.hb-seg {
+  display: flex; background: var(--bg-3); border: 1px solid var(--line);
+  border-radius: 12px; padding: 3px; gap: 3px;
+}
+.hb-seg > button {
+  flex: 1; padding: 8px 4px; border-radius: 9px;
+  font-size: 13px; font-weight: 500;
+  color: var(--ink-2);
+  transition: background .15s, color .15s;
+}
+.hb-seg > button.active {
+  background: var(--bg);
+  color: var(--ink);
+  border: 1px solid var(--line-2);
+  box-shadow: 0 1px 2px rgba(0,0,0,0.2);
+}
+
+/* meter (reusable risk bar) */
+.hb-meter { position: relative; height: 3px; background: var(--line); border-radius: 2px; overflow: hidden; }
+.hb-meter-fill { position: absolute; inset: 0 auto 0 0; background: var(--accent); transition: width .6s cubic-bezier(.32,.72,0,1); }
+
+/* risk colors by state */
+[data-risk="green"]  { --risk: var(--green); }
+[data-risk="yellow"] { --risk: var(--yellow); }
+[data-risk="red"]    { --risk: var(--red); }
+
+/* tweaks panel */
+.hb-tweaks {
+  position: absolute;
+  right: -340px;
+  top: 10px;
+  width: 320px;
+  max-height: calc(100% - 20px);
+  overflow-y: auto;
+  background: #0f1115;
+  border: 1px solid #222;
+  border-radius: 16px;
+  color: #e8e4dc;
+  padding: 16px;
+  font-family: var(--font-sans);
+  font-size: 13px;
+  box-shadow: 0 20px 40px rgba(0,0,0,0.35);
+  z-index: 100;
+}
+.hb-tweaks h3 {
+  font-family: var(--font-display); font-weight: 400; font-size: 22px; margin: 0 0 2px;
+}
+.hb-tweaks .hint {
+  color: #888; font-size: 11px; margin: 0 0 14px;
+}
+.hb-tweaks .group { margin-bottom: 14px; }
+.hb-tweaks .label {
+  font-family: var(--font-mono); font-size: 10px; letter-spacing: 0.15em;
+  text-transform: uppercase; color: #888; margin-bottom: 6px;
+}
+.hb-tweaks .opts { display: grid; grid-template-columns: repeat(2, 1fr); gap: 6px; }
+.hb-tweaks .opts.full { grid-template-columns: 1fr; }
+.hb-tweaks .opts button {
+  padding: 8px 10px;
+  border: 1px solid #222;
+  border-radius: 10px;
+  background: #15181d;
+  color: #bbb;
+  text-align: left;
+  font-size: 12px;
+}
+.hb-tweaks .opts button.active {
+  border-color: #E8C27A;
+  background: #1c1c1c;
+  color: #fff;
+}
+
+/* world (outside device) */
+.world {
+  min-height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 40px 20px;
+  background:
+    radial-gradient(ellipse at 30% 20%, rgba(232,194,122,0.08), transparent 60%),
+    radial-gradient(ellipse at 70% 80%, rgba(180,91,79,0.08), transparent 60%),
+    #060608;
+}
+
+/* gauge / curve visuals share shared helpers */
+.glow-amber { filter: drop-shadow(0 0 14px rgba(232,194,122,0.25)); }
+.glow-red   { filter: drop-shadow(0 0 14px rgba(217,106,106,0.25)); }
+.glow-green { filter: drop-shadow(0 0 14px rgba(127,182,138,0.25)); }
+
+/* utility */
+.flex { display: flex; }
+.f-col { display: flex; flex-direction: column; }
+.items-center { align-items: center; }
+.justify-between { justify-content: space-between; }
+.gap-2 { gap: 8px; }
+.gap-3 { gap: 12px; }
+.gap-4 { gap: 16px; }
+.w-full { width: 100%; }
+.mt-1 { margin-top: 4px; } .mt-2 { margin-top: 8px; } .mt-3 { margin-top: 12px; } .mt-4 { margin-top: 16px; } .mt-6 { margin-top: 24px; } .mt-8 { margin-top: 32px; }
+.mb-2 { margin-bottom: 8px; } .mb-3 { margin-bottom: 12px; } .mb-4 { margin-bottom: 16px; }
+
+/* Toast */
+.hb-toast {
+  position: absolute; left: 20px; right: 20px; bottom: 110px;
+  background: var(--bg-3);
+  border: 1px solid var(--line-2);
+  color: var(--ink);
+  padding: 12px 14px;
+  border-radius: 14px;
+  font-size: 13px;
+  z-index: 50;
+  animation: slide-up .25s ease both;
+}
+
+</style>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,300..600;1,9..144,300..600&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+
+<script src="https://unpkg.com/react@18.3.1/umd/react.development.js" integrity="sha384-hD6/rw4ppMLGNu3tX5cjIb+uRZ7UkRJ6BPkLpg4hAu/6onKUg4lLsHAs9EBPT82L" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.development.js" integrity="sha384-u6aeetuaXnQ38mYT8rp6sbXaQe3NL9t+IBXmnYxwkUI2Hw4bsp2Wvmx4yRQF1uAm" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/@babel/standalone@7.29.0/babel.min.js" integrity="sha384-m08KidiNqLdpJqLq95G/LEi8Qvjl/xUYll3QILypMoQ65QorJ9Lvtp2RXYGBFj1y" crossorigin="anonymous"></script>
+</head>
+<body data-palette="dusk" data-density="comfortable">
+<div id="root"></div>
+
+<script>
+// BAC math — ported from src/lib/bac.ts (Widmark + food-modulated absorption + zero-order elimination)
+
+const BETA_LOW = 0.12;
+const BETA_TYPICAL = 0.15;
+const BETA_HIGH = 0.20;
+
+const TARGET_PEAK_BAC = 0.055;
+const RISK_GREEN_MAX = 0.04;
+const RISK_YELLOW_MAX = 0.06;
+
+const R_MALE = 0.68;
+const R_FEMALE = 0.55;
+
+const HOUR_MS = 60 * 60 * 1000;
+const SIM_STEP_MS = 60_000;
+const GRAMS_PER_STANDARD_DRINK_AU = 10;
+
+const HANGOVER_PEAK_LOW = 0.05;
+const HANGOVER_PEAK_MODERATE = 0.08;
+const HANGOVER_PEAK_SEVERE = 0.11;
+const HANGOVER_WAKE_STILL_DRUNK = 0.02;
+
+const DRINK_PRESETS = [
+  { type: 'mid_beer',  label: 'Mid beer',  sublabel: '375 ml · 3.5%',   standardDrinks: 1.0 },
+  { type: 'full_beer', label: 'Full beer', sublabel: '375 ml · 4.8%',   standardDrinks: 1.4 },
+  { type: 'wine',      label: 'Wine',      sublabel: '150 ml · 13%',    standardDrinks: 1.5 },
+  { type: 'spirit',    label: 'Spirit',    sublabel: '30 ml · 40%',     standardDrinks: 1.0 },
+  { type: 'cocktail',  label: 'Cocktail',  sublabel: 'avg 2 standard',  standardDrinks: 2.0 },
+];
+
+function widmarkR(profile) {
+  return profile.sex === 'male' ? R_MALE : R_FEMALE;
+}
+
+function stomachStateAt(food, at) {
+  let state = 'empty';
+  for (const e of food) {
+    if (e.at > at) continue;
+    const h = (at - e.at) / HOUR_MS;
+    if (e.size === 'meal') {
+      if (h < 2) state = 'full';
+      else if (h < 4 && state !== 'full') state = 'snack';
+    } else if (e.size === 'snack') {
+      if (h < 2 && state !== 'full') state = 'snack';
+    }
+  }
+  return state;
+}
+
+function absorptionMinutesFor(state) {
+  if (state === 'full') return 75;
+  if (state === 'snack') return 45;
+  return 20;
+}
+
+function computeBacAt(inputs, beta = BETA_TYPICAL) {
+  const { profile, drinks, food, at } = inputs;
+  const sorted = drinks.filter(d => d.at <= at).sort((a, b) => a.at - b.at);
+  if (sorted.length === 0) return 0;
+  const r = widmarkR(profile);
+  const W = profile.weightKg;
+
+  const plans = sorted.map(d => {
+    const state = stomachStateAt(food, d.at);
+    const absMs = absorptionMinutesFor(state) * 60_000;
+    return {
+      grams: d.standardDrinks * GRAMS_PER_STANDARD_DRINK_AU,
+      start: d.at,
+      end: d.at + absMs,
+      absorptionMs: absMs,
+    };
+  });
+
+  let bac = 0;
+  let t = sorted[0].at;
+  while (t < at) {
+    const next = Math.min(t + SIM_STEP_MS, at);
+    const dtHr = (next - t) / HOUR_MS;
+    let g = 0;
+    for (const p of plans) {
+      if (p.absorptionMs === 0) continue;
+      const a = Math.max(t, p.start);
+      const b = Math.min(next, p.end);
+      if (b > a) g += p.grams * ((b - a) / p.absorptionMs);
+    }
+    bac += g / (W * r);
+    bac = Math.max(0, bac - beta * dtHr);
+    t = next;
+  }
+  return bac / 10; // g/L → percent
+}
+
+function computeBacRange(inputs) {
+  return {
+    low: computeBacAt(inputs, BETA_HIGH),
+    typical: computeBacAt(inputs, BETA_TYPICAL),
+    high: computeBacAt(inputs, BETA_LOW),
+  };
+}
+
+function riskFor(bac) {
+  if (bac < RISK_GREEN_MAX) return 'green';
+  if (bac < RISK_YELLOW_MAX) return 'yellow';
+  return 'red';
+}
+
+function soberAtMs(inputs) {
+  const cur = computeBacAt(inputs, BETA_TYPICAL);
+  if (cur <= 0) return null;
+  const hrs = (cur * 10) / BETA_TYPICAL;
+  return inputs.at + hrs * HOUR_MS;
+}
+
+function peakBacInWindow(profile, drinks, food, fromMs, toMs) {
+  if (drinks.length === 0) return 0;
+  const step = 5 * 60_000;
+  let peak = 0;
+  for (let t = fromMs; t <= toMs; t += step) {
+    const v = computeBacAt({ profile, drinks, food, at: t }, BETA_TYPICAL);
+    if (v > peak) peak = v;
+  }
+  return peak;
+}
+
+function probeSpacingMs(drinks) {
+  const D = 30 * 60_000, MIN = 20 * 60_000, MAX = 75 * 60_000;
+  if (drinks.length < 2) return D;
+  const s = [...drinks].sort((a, b) => a.at - b.at);
+  const span = s[s.length - 1].at - s[0].at;
+  if (span <= 0) return D;
+  return Math.min(MAX, Math.max(MIN, span / (s.length - 1)));
+}
+
+function suggestedDrinksRemaining(inputs, sessionEndsAt, avg = 1.4, cap = TARGET_PEAK_BAC) {
+  let count = 0;
+  const drinks = [...inputs.drinks];
+  const rem = Math.max(0, sessionEndsAt - inputs.at);
+  if (rem === 0) return 0;
+  const slotMs = probeSpacingMs(inputs.drinks);
+  const slots = Math.max(1, Math.floor(rem / slotMs));
+  for (let i = 0; i < slots; i++) {
+    const at = inputs.at + i * slotMs;
+    const trial = [...drinks, { id: `p${i}`, type: 'custom', label: 'p', standardDrinks: avg, at }];
+    const peak = peakBacInWindow(inputs.profile, trial, inputs.food, inputs.at, sessionEndsAt + 90 * 60_000);
+    if (peak > cap) break;
+    drinks.push(trial[trial.length - 1]);
+    count++;
+  }
+  return count;
+}
+
+function drinksUntilHangover(inputs, sessionEndsAt, wakeAtMs, avg = 1.4, cap = HANGOVER_PEAK_MODERATE) {
+  let count = 0;
+  const drinks = [...inputs.drinks];
+  const rem = Math.max(0, sessionEndsAt - inputs.at);
+  if (rem === 0) return 0;
+  const slotMs = probeSpacingMs(inputs.drinks);
+  const slots = Math.max(1, Math.floor(rem / slotMs));
+  for (let i = 0; i < slots; i++) {
+    const at = inputs.at + i * slotMs;
+    const trial = [...drinks, { id: `p${i}`, type: 'custom', label: 'p', standardDrinks: avg, at }];
+    const peak = peakBacInWindow(inputs.profile, trial, inputs.food, inputs.at, Math.max(sessionEndsAt + 90 * 60_000, wakeAtMs));
+    const wake = computeBacAt({ profile: inputs.profile, drinks: trial, food: inputs.food, at: wakeAtMs }, BETA_TYPICAL);
+    if (peak > cap) break;
+    if (wake >= HANGOVER_WAKE_STILL_DRUNK) break;
+    drinks.push(trial[trial.length - 1]);
+    count++;
+  }
+  return count;
+}
+
+function hangoverRiskFor(peakBac, bacAtWake, waterBehindGlasses) {
+  if (bacAtWake >= HANGOVER_WAKE_STILL_DRUNK) return 'severe';
+  if (peakBac >= HANGOVER_PEAK_SEVERE) return 'severe';
+  let tier = 'low';
+  if (peakBac >= HANGOVER_PEAK_MODERATE) tier = 'high';
+  else if (peakBac >= HANGOVER_PEAK_LOW) tier = 'moderate';
+  if (waterBehindGlasses >= 3 && tier === 'low') tier = 'moderate';
+  else if (waterBehindGlasses >= 3 && tier === 'moderate') tier = 'high';
+  return tier;
+}
+
+function hangoverLabel(r) {
+  return ({ low: 'Low', moderate: 'Moderate', high: 'High', severe: 'Severe' })[r];
+}
+
+function waterBehind(drinks, waterCount) {
+  return drinks.length > 0 && waterCount < Math.max(0, drinks.length - 1);
+}
+function waterDeficit(drinks, waterCount) {
+  return Math.max(0, drinks.length - 1 - waterCount);
+}
+
+// Build a BAC curve from a session, sampled as points over time
+function bacCurve(profile, drinks, food, fromMs, toMs, points = 80) {
+  const out = [];
+  if (toMs <= fromMs) return out;
+  const step = (toMs - fromMs) / points;
+  for (let i = 0; i <= points; i++) {
+    const at = fromMs + step * i;
+    out.push({ at, bac: computeBacAt({ profile, drinks, food, at }, BETA_TYPICAL) });
+  }
+  return out;
+}
+
+window.BAC = {
+  BETA_TYPICAL, TARGET_PEAK_BAC, RISK_GREEN_MAX, RISK_YELLOW_MAX,
+  GRAMS_PER_STANDARD_DRINK_AU, DRINK_PRESETS,
+  computeBacAt, computeBacRange, riskFor, soberAtMs, peakBacInWindow,
+  suggestedDrinksRemaining, drinksUntilHangover,
+  hangoverRiskFor, hangoverLabel, waterBehind, waterDeficit, bacCurve,
+};
+
+</script>
+<script>
+// Zustand-free store using React hooks + localStorage.
+
+const STORAGE_KEY = 'hangover-buddy-redesign:v1';
+
+function nanoid() {
+  return Math.random().toString(36).slice(2, 10) + Date.now().toString(36).slice(-4);
+}
+
+function loadState() {
+  try {
+    const raw = localStorage.getItem(STORAGE_KEY);
+    if (!raw) return defaultState();
+    const p = JSON.parse(raw);
+    return { ...defaultState(), ...p };
+  } catch { return defaultState(); }
+}
+
+function defaultState() {
+  return {
+    profile: null,
+    active: null,
+    history: [],
+    // visual tweaks
+    palette: 'dusk',       // dusk | neon | paper
+    density: 'comfortable',
+    visual: 'curve',       // curve | orb | ring | numeric
+    simState: 'real',      // real | dry | midnight | overlimit
+    showIntro: true,
+  };
+}
+
+function saveState(s) {
+  try {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(s));
+  } catch {}
+}
+
+// a tiny pub/sub store
+const listeners = new Set();
+let state = loadState();
+
+function getState() { return state; }
+function setState(patch) {
+  state = typeof patch === 'function' ? patch(state) : { ...state, ...patch };
+  saveState(state);
+  for (const l of listeners) l(state);
+}
+function subscribe(fn) { listeners.add(fn); return () => listeners.delete(fn); }
+
+function useStore(selector = s => s) {
+  const [val, setVal] = React.useState(() => selector(state));
+  React.useEffect(() => {
+    return subscribe(s => {
+      const next = selector(s);
+      setVal(prev => (Object.is(prev, next) ? prev : next));
+    });
+  }, []);
+  return val;
+}
+
+// actions
+const actions = {
+  setProfile(profile) { setState({ profile }); },
+  resetAll() {
+    localStorage.removeItem(STORAGE_KEY);
+    state = defaultState();
+    for (const l of listeners) l(state);
+  },
+  startSession({ expectedHours, wakeAtMs, planToDrive }) {
+    setState({
+      active: {
+        id: nanoid(),
+        startedAt: Date.now(),
+        expectedHours,
+        drinks: [], food: [], water: [],
+        wakeAtMs, planToDrive: !!planToDrive,
+      },
+    });
+  },
+  endSession({ peakBac, predictedRisk }) {
+    const { active, history } = state;
+    if (!active) return null;
+    const ended = { ...active, endedAt: Date.now(), peakBac, predictedRisk };
+    setState({ active: null, history: [ended, ...history].slice(0, 30) });
+    return ended.id;
+  },
+  setExpectedHours(h) {
+    if (!state.active) return;
+    setState({ active: { ...state.active, expectedHours: h } });
+  },
+  setWakeAt(ms) {
+    if (!state.active) return;
+    setState({ active: { ...state.active, wakeAtMs: ms } });
+  },
+  setPlanToDrive(v) {
+    if (!state.active) return;
+    setState({ active: { ...state.active, planToDrive: v } });
+  },
+  addDrink({ type, label, standardDrinks }) {
+    if (!state.active) return;
+    const entry = { id: nanoid(), type, label, standardDrinks, at: Date.now() };
+    setState({ active: { ...state.active, drinks: [...state.active.drinks, entry] } });
+  },
+  removeDrink(id) {
+    if (!state.active) return;
+    setState({ active: { ...state.active, drinks: state.active.drinks.filter(d => d.id !== id) } });
+  },
+  addFood(size) {
+    if (!state.active) return;
+    const entry = { id: nanoid(), size, at: Date.now() };
+    setState({ active: { ...state.active, food: [...state.active.food, entry] } });
+  },
+  removeFood(id) {
+    if (!state.active) return;
+    setState({ active: { ...state.active, food: state.active.food.filter(f => f.id !== id) } });
+  },
+  addWater() {
+    if (!state.active) return;
+    const entry = { id: nanoid(), at: Date.now() };
+    setState({ active: { ...state.active, water: [...state.active.water, entry] } });
+  },
+  removeWater(id) {
+    if (!state.active) return;
+    setState({ active: { ...state.active, water: state.active.water.filter(w => w.id !== id) } });
+  },
+  submitRecap(id, recap) {
+    setState({ history: state.history.map(s => s.id === id ? { ...s, recap } : s) });
+  },
+  setVisual(v) { setState({ visual: v }); },
+  setPalette(p) { setState({ palette: p }); },
+  setDensity(d) { setState({ density: d }); },
+  setSimState(k) { setState({ simState: k }); },
+  setShowIntro(v) { setState({ showIntro: v }); },
+  // demo seeding
+  seedSimState(kind) {
+    // Build a fake session based on tweak choice
+    const now = Date.now();
+    const profile = state.profile || {
+      name: 'Sam', sex: 'male', heightCm: 180, weightKg: 78, age: 30, acceptedDisclaimerAt: now,
+    };
+    if (kind === 'dry') {
+      setState({
+        profile,
+        active: {
+          id: nanoid(),
+          startedAt: now - 20 * 60_000,
+          expectedHours: 5,
+          drinks: [],
+          food: [{ id: nanoid(), size: 'meal', at: now - 40 * 60_000 }],
+          water: [],
+          wakeAtMs: new Date().setHours(8, 0, 0, 0) + 24 * 3600_000,
+          planToDrive: false,
+        },
+      });
+    } else if (kind === 'midnight') {
+      const start = now - 2.5 * 3600_000;
+      setState({
+        profile,
+        active: {
+          id: nanoid(),
+          startedAt: start,
+          expectedHours: 5,
+          drinks: [
+            { id: nanoid(), type: 'full_beer', label: 'Full beer', standardDrinks: 1.4, at: start + 15 * 60_000 },
+            { id: nanoid(), type: 'full_beer', label: 'Full beer', standardDrinks: 1.4, at: start + 55 * 60_000 },
+            { id: nanoid(), type: 'wine',      label: 'Wine',      standardDrinks: 1.5, at: start + 95 * 60_000 },
+            { id: nanoid(), type: 'spirit',    label: 'Spirit',    standardDrinks: 1.0, at: start + 130 * 60_000 },
+          ],
+          food: [{ id: nanoid(), size: 'meal', at: start - 30 * 60_000 }],
+          water: [{ id: nanoid(), at: start + 40 * 60_000 }],
+          wakeAtMs: (() => { const d = new Date(); d.setDate(d.getDate() + 1); d.setHours(8, 0, 0, 0); return d.getTime(); })(),
+          planToDrive: false,
+        },
+      });
+    } else if (kind === 'overlimit') {
+      const start = now - 3 * 3600_000;
+      setState({
+        profile,
+        active: {
+          id: nanoid(),
+          startedAt: start,
+          expectedHours: 5,
+          drinks: [
+            { id: nanoid(), type: 'spirit',    label: 'Spirit',    standardDrinks: 1.2, at: start + 10 * 60_000 },
+            { id: nanoid(), type: 'cocktail',  label: 'Cocktail',  standardDrinks: 2.0, at: start + 40 * 60_000 },
+            { id: nanoid(), type: 'cocktail',  label: 'Cocktail',  standardDrinks: 2.0, at: start + 75 * 60_000 },
+            { id: nanoid(), type: 'full_beer', label: 'Full beer', standardDrinks: 1.4, at: start + 110 * 60_000 },
+            { id: nanoid(), type: 'spirit',    label: 'Spirit',    standardDrinks: 1.2, at: start + 145 * 60_000 },
+            { id: nanoid(), type: 'full_beer', label: 'Full beer', standardDrinks: 1.4, at: start + 170 * 60_000 },
+          ],
+          food: [],
+          water: [],
+          wakeAtMs: (() => { const d = new Date(); d.setDate(d.getDate() + 1); d.setHours(8, 0, 0, 0); return d.getTime(); })(),
+          planToDrive: false,
+        },
+      });
+    }
+    // 'real' leaves active alone
+  },
+};
+
+window.HB = { useStore, getState, setState, actions, nanoid };
+
+</script>
+
+<script type="text/babel">
+
+// iOS.jsx — Simplified iOS 26 (Liquid Glass) device frame
+// Based on the iOS 26 UI Kit + Figma status bar spec. No assets, no deps.
+// Exports: IOSDevice, IOSStatusBar, IOSNavBar, IOSGlassPill, IOSList, IOSListRow, IOSKeyboard
+
+// ─────────────────────────────────────────────────────────────
+// Status bar
+// ─────────────────────────────────────────────────────────────
+function IOSStatusBar({ dark = false, time = '9:41' }) {
+  const c = dark ? '#fff' : '#000';
+  return (
+    <div style={{
+      display: 'flex', gap: 154, alignItems: 'center', justifyContent: 'center',
+      padding: '21px 24px 19px', boxSizing: 'border-box',
+      position: 'relative', zIndex: 20, width: '100%',
+    }}>
+      <div style={{ flex: 1, height: 22, display: 'flex', alignItems: 'center', justifyContent: 'center', paddingTop: 1.5 }}>
+        <span style={{
+          fontFamily: '-apple-system, "SF Pro", system-ui', fontWeight: 590,
+          fontSize: 17, lineHeight: '22px', color: c,
+        }}>{time}</span>
+      </div>
+      <div style={{ flex: 1, height: 22, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 7, paddingTop: 1, paddingRight: 1 }}>
+        <svg width="19" height="12" viewBox="0 0 19 12">
+          <rect x="0" y="7.5" width="3.2" height="4.5" rx="0.7" fill={c}/>
+          <rect x="4.8" y="5" width="3.2" height="7" rx="0.7" fill={c}/>
+          <rect x="9.6" y="2.5" width="3.2" height="9.5" rx="0.7" fill={c}/>
+          <rect x="14.4" y="0" width="3.2" height="12" rx="0.7" fill={c}/>
+        </svg>
+        <svg width="17" height="12" viewBox="0 0 17 12">
+          <path d="M8.5 3.2C10.8 3.2 12.9 4.1 14.4 5.6L15.5 4.5C13.7 2.7 11.2 1.5 8.5 1.5C5.8 1.5 3.3 2.7 1.5 4.5L2.6 5.6C4.1 4.1 6.2 3.2 8.5 3.2Z" fill={c}/>
+          <path d="M8.5 6.8C9.9 6.8 11.1 7.3 12 8.2L13.1 7.1C11.8 5.9 10.2 5.1 8.5 5.1C6.8 5.1 5.2 5.9 3.9 7.1L5 8.2C5.9 7.3 7.1 6.8 8.5 6.8Z" fill={c}/>
+          <circle cx="8.5" cy="10.5" r="1.5" fill={c}/>
+        </svg>
+        <svg width="27" height="13" viewBox="0 0 27 13">
+          <rect x="0.5" y="0.5" width="23" height="12" rx="3.5" stroke={c} strokeOpacity="0.35" fill="none"/>
+          <rect x="2" y="2" width="20" height="9" rx="2" fill={c}/>
+          <path d="M25 4.5V8.5C25.8 8.2 26.5 7.2 26.5 6.5C26.5 5.8 25.8 4.8 25 4.5Z" fill={c} fillOpacity="0.4"/>
+        </svg>
+      </div>
+    </div>
+  );
+}
+
+// ─────────────────────────────────────────────────────────────
+// Liquid glass pill — blur + tint + shine
+// ─────────────────────────────────────────────────────────────
+function IOSGlassPill({ children, dark = false, style = {} }) {
+  return (
+    <div style={{
+      height: 44, minWidth: 44, borderRadius: 9999,
+      position: 'relative', overflow: 'hidden',
+      display: 'flex', alignItems: 'center', justifyContent: 'center',
+      boxShadow: dark
+        ? '0 2px 6px rgba(0,0,0,0.35), 0 6px 16px rgba(0,0,0,0.2)'
+        : '0 1px 3px rgba(0,0,0,0.07), 0 3px 10px rgba(0,0,0,0.06)',
+      ...style,
+    }}>
+      {/* blur + tint */}
+      <div style={{
+        position: 'absolute', inset: 0, borderRadius: 9999,
+        backdropFilter: 'blur(12px) saturate(180%)',
+        WebkitBackdropFilter: 'blur(12px) saturate(180%)',
+        background: dark ? 'rgba(120,120,128,0.28)' : 'rgba(255,255,255,0.5)',
+      }} />
+      {/* shine */}
+      <div style={{
+        position: 'absolute', inset: 0, borderRadius: 9999,
+        boxShadow: dark
+          ? 'inset 1.5px 1.5px 1px rgba(255,255,255,0.15), inset -1px -1px 1px rgba(255,255,255,0.08)'
+          : 'inset 1.5px 1.5px 1px rgba(255,255,255,0.7), inset -1px -1px 1px rgba(255,255,255,0.4)',
+        border: dark ? '0.5px solid rgba(255,255,255,0.15)' : '0.5px solid rgba(0,0,0,0.06)',
+      }} />
+      <div style={{ position: 'relative', zIndex: 1, display: 'flex', alignItems: 'center', padding: '0 4px' }}>
+        {children}
+      </div>
+    </div>
+  );
+}
+
+// ─────────────────────────────────────────────────────────────
+// Navigation bar — glass pills + large title
+// ─────────────────────────────────────────────────────────────
+function IOSNavBar({ title = 'Title', dark = false, trailingIcon = true }) {
+  const muted = dark ? 'rgba(255,255,255,0.6)' : '#404040';
+  const text = dark ? '#fff' : '#000';
+  const pillIcon = (content) => (
+    <IOSGlassPill dark={dark}>
+      <div style={{ width: 36, height: 36, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+        {content}
+      </div>
+    </IOSGlassPill>
+  );
+  return (
+    <div style={{
+      display: 'flex', flexDirection: 'column', gap: 10,
+      paddingTop: 62, paddingBottom: 10, position: 'relative', zIndex: 5,
+    }}>
+      <div style={{
+        display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+        padding: '0 16px',
+      }}>
+        {/* back chevron */}
+        {pillIcon(
+          <svg width="12" height="20" viewBox="0 0 12 20" fill="none" style={{ marginLeft: -1 }}>
+            <path d="M10 2L2 10l8 8" stroke={muted} strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"/>
+          </svg>
+        )}
+        {/* trailing ellipsis */}
+        {trailingIcon && pillIcon(
+          <svg width="22" height="6" viewBox="0 0 22 6">
+            <circle cx="3" cy="3" r="2.5" fill={muted}/>
+            <circle cx="11" cy="3" r="2.5" fill={muted}/>
+            <circle cx="19" cy="3" r="2.5" fill={muted}/>
+          </svg>
+        )}
+      </div>
+      {/* large title */}
+      <div style={{
+        padding: '0 16px',
+        fontFamily: '-apple-system, system-ui',
+        fontSize: 34, fontWeight: 700, lineHeight: '41px',
+        color: text, letterSpacing: 0.4,
+      }}>{title}</div>
+    </div>
+  );
+}
+
+// ─────────────────────────────────────────────────────────────
+// Grouped list (inset card, r:26) + row (52px)
+// ─────────────────────────────────────────────────────────────
+function IOSListRow({ title, detail, icon, chevron = true, isLast = false, dark = false }) {
+  const text = dark ? '#fff' : '#000';
+  const sec = dark ? 'rgba(235,235,245,0.6)' : 'rgba(60,60,67,0.6)';
+  const ter = dark ? 'rgba(235,235,245,0.3)' : 'rgba(60,60,67,0.3)';
+  const sep = dark ? 'rgba(84,84,88,0.65)' : 'rgba(60,60,67,0.12)';
+  return (
+    <div style={{
+      display: 'flex', alignItems: 'center', minHeight: 52,
+      padding: '0 16px', position: 'relative',
+      fontFamily: '-apple-system, system-ui', fontSize: 17,
+      letterSpacing: -0.43,
+    }}>
+      {icon && (
+        <div style={{
+          width: 30, height: 30, borderRadius: 7, background: icon,
+          marginRight: 12, flexShrink: 0,
+        }} />
+      )}
+      <div style={{ flex: 1, color: text }}>{title}</div>
+      {detail && <span style={{ color: sec, marginRight: 6 }}>{detail}</span>}
+      {chevron && (
+        <svg width="8" height="14" viewBox="0 0 8 14" style={{ flexShrink: 0 }}>
+          <path d="M1 1l6 6-6 6" stroke={ter} strokeWidth="2" fill="none" strokeLinecap="round" strokeLinejoin="round"/>
+        </svg>
+      )}
+      {!isLast && (
+        <div style={{
+          position: 'absolute', bottom: 0, right: 0,
+          left: icon ? 58 : 16, height: 0.5, background: sep,
+        }} />
+      )}
+    </div>
+  );
+}
+
+function IOSList({ header, children, dark = false }) {
+  const hc = dark ? 'rgba(235,235,245,0.6)' : 'rgba(60,60,67,0.6)';
+  const bg = dark ? '#1C1C1E' : '#fff';
+  return (
+    <div>
+      {header && (
+        <div style={{
+          fontFamily: '-apple-system, system-ui', fontSize: 13,
+          color: hc, textTransform: 'uppercase',
+          padding: '8px 36px 6px', letterSpacing: -0.08,
+        }}>{header}</div>
+      )}
+      <div style={{
+        background: bg, borderRadius: 26,
+        margin: '0 16px', overflow: 'hidden',
+      }}>{children}</div>
+    </div>
+  );
+}
+
+// ─────────────────────────────────────────────────────────────
+// Device frame
+// ─────────────────────────────────────────────────────────────
+function IOSDevice({
+  children, width = 402, height = 874, dark = false,
+  title, keyboard = false,
+}) {
+  return (
+    <div style={{
+      width, height, borderRadius: 48, overflow: 'hidden',
+      position: 'relative', background: dark ? '#000' : '#F2F2F7',
+      boxShadow: '0 40px 80px rgba(0,0,0,0.18), 0 0 0 1px rgba(0,0,0,0.12)',
+      fontFamily: '-apple-system, system-ui, sans-serif',
+      WebkitFontSmoothing: 'antialiased',
+    }}>
+      {/* dynamic island */}
+      <div style={{
+        position: 'absolute', top: 11, left: '50%', transform: 'translateX(-50%)',
+        width: 126, height: 37, borderRadius: 24, background: '#000', zIndex: 50,
+      }} />
+      {/* status bar (absolute) */}
+      <div style={{ position: 'absolute', top: 0, left: 0, right: 0, zIndex: 10 }}>
+        <IOSStatusBar dark={dark} />
+      </div>
+      {/* nav + content */}
+      <div style={{ height: '100%', display: 'flex', flexDirection: 'column' }}>
+        {title !== undefined && <IOSNavBar title={title} dark={dark} />}
+        <div style={{ flex: 1, overflow: 'auto' }}>{children}</div>
+        {keyboard && <IOSKeyboard dark={dark} />}
+      </div>
+      {/* home indicator — always on top */}
+      <div style={{
+        position: 'absolute', bottom: 0, left: 0, right: 0, zIndex: 60,
+        height: 34, display: 'flex', justifyContent: 'center', alignItems: 'flex-end',
+        paddingBottom: 8, pointerEvents: 'none',
+      }}>
+        <div style={{
+          width: 139, height: 5, borderRadius: 100,
+          background: dark ? 'rgba(255,255,255,0.7)' : 'rgba(0,0,0,0.25)',
+        }} />
+      </div>
+    </div>
+  );
+}
+
+// ─────────────────────────────────────────────────────────────
+// Keyboard — iOS 26 liquid glass
+// ─────────────────────────────────────────────────────────────
+function IOSKeyboard({ dark = false }) {
+  const glyph = dark ? 'rgba(255,255,255,0.7)' : '#595959';
+  const sugg = dark ? 'rgba(255,255,255,0.6)' : '#333';
+  const keyBg = dark ? 'rgba(255,255,255,0.22)' : 'rgba(255,255,255,0.85)';
+
+  // special-key icons
+  const icons = {
+    shift: <svg width="19" height="17" viewBox="0 0 19 17"><path d="M9.5 1L1 9.5h4.5V16h8V9.5H18L9.5 1z" fill={glyph}/></svg>,
+    del: <svg width="23" height="17" viewBox="0 0 23 17"><path d="M7 1h13a2 2 0 012 2v11a2 2 0 01-2 2H7l-6-7.5L7 1z" fill="none" stroke={glyph} strokeWidth="1.6" strokeLinejoin="round"/><path d="M10 5l7 7M17 5l-7 7" stroke={glyph} strokeWidth="1.6" strokeLinecap="round"/></svg>,
+    ret: <svg width="20" height="14" viewBox="0 0 20 14"><path d="M18 1v6H4m0 0l4-4M4 7l4 4" fill="none" stroke="#fff" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"/></svg>,
+  };
+
+  const key = (content, { w, flex, ret, fs = 25, k } = {}) => (
+    <div key={k} style={{
+      height: 42, borderRadius: 8.5,
+      flex: flex ? 1 : undefined, width: w, minWidth: 0,
+      background: ret ? '#08f' : keyBg,
+      boxShadow: '0 1px 0 rgba(0,0,0,0.075)',
+      display: 'flex', alignItems: 'center', justifyContent: 'center',
+      fontFamily: '-apple-system, "SF Compact", system-ui',
+      fontSize: fs, fontWeight: 458, color: ret ? '#fff' : glyph,
+    }}>{content}</div>
+  );
+
+  const row = (keys, pad = 0) => (
+    <div style={{ display: 'flex', gap: 6.5, justifyContent: 'center', padding: `0 ${pad}px` }}>
+      {keys.map(l => key(l, { flex: true, k: l }))}
+    </div>
+  );
+
+  return (
+    <div style={{
+      position: 'relative', zIndex: 15, borderRadius: 27, overflow: 'hidden',
+      padding: '11px 0 2px',
+      display: 'flex', flexDirection: 'column', alignItems: 'center',
+      boxShadow: dark
+        ? '0 -2px 20px rgba(0,0,0,0.09)'
+        : '0 -1px 6px rgba(0,0,0,0.018), 0 -3px 20px rgba(0,0,0,0.012)',
+    }}>
+      {/* liquid glass bg — same recipe as nav pills */}
+      <div style={{
+        position: 'absolute', inset: 0, borderRadius: 27,
+        backdropFilter: 'blur(12px) saturate(180%)',
+        WebkitBackdropFilter: 'blur(12px) saturate(180%)',
+        background: dark ? 'rgba(120,120,128,0.14)' : 'rgba(255,255,255,0.25)',
+      }} />
+      <div style={{
+        position: 'absolute', inset: 0, borderRadius: 27,
+        boxShadow: dark
+          ? 'inset 1.5px 1.5px 1px rgba(255,255,255,0.15)'
+          : 'inset 1.5px 1.5px 1px rgba(255,255,255,0.7), inset -1px -1px 1px rgba(255,255,255,0.4)',
+        border: dark ? '0.5px solid rgba(255,255,255,0.15)' : '0.5px solid rgba(0,0,0,0.06)',
+        pointerEvents: 'none',
+      }} />
+
+      {/* autocorrect bar */}
+      <div style={{
+        display: 'flex', gap: 20, alignItems: 'center',
+        padding: '8px 22px 13px', width: '100%', boxSizing: 'border-box',
+        position: 'relative',
+      }}>
+        {['"The"', 'the', 'to'].map((w, i) => (
+          <React.Fragment key={i}>
+            {i > 0 && <div style={{ width: 1, height: 25, background: '#ccc', opacity: 0.3 }} />}
+            <div style={{
+              flex: 1, textAlign: 'center',
+              fontFamily: '-apple-system, system-ui', fontSize: 17,
+              color: sugg, letterSpacing: -0.43, lineHeight: '22px',
+            }}>{w}</div>
+          </React.Fragment>
+        ))}
+      </div>
+
+      {/* key layout */}
+      <div style={{
+        display: 'flex', flexDirection: 'column', gap: 13,
+        padding: '0 6.5px', width: '100%', boxSizing: 'border-box',
+        position: 'relative',
+      }}>
+        {row(['q','w','e','r','t','y','u','i','o','p'])}
+        {row(['a','s','d','f','g','h','j','k','l'], 20)}
+        <div style={{ display: 'flex', gap: 14.25, alignItems: 'center' }}>
+          {key(icons.shift, { w: 45, k: 'shift' })}
+          <div style={{ display: 'flex', gap: 6.5, flex: 1 }}>
+            {['z','x','c','v','b','n','m'].map(l => key(l, { flex: true, k: l }))}
+          </div>
+          {key(icons.del, { w: 45, k: 'del' })}
+        </div>
+        <div style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
+          {key('ABC', { w: 92.25, fs: 18, k: 'abc' })}
+          {key('', { flex: true, k: 'space' })}
+          {key(icons.ret, { w: 92.25, ret: true, k: 'ret' })}
+        </div>
+      </div>
+
+      {/* bottom spacer (emoji+mic area, icons omitted) */}
+      <div style={{ height: 56, width: '100%', position: 'relative' }} />
+    </div>
+  );
+}
+
+Object.assign(window, {
+  IOSDevice, IOSStatusBar, IOSNavBar, IOSGlassPill, IOSList, IOSListRow, IOSKeyboard,
+});
+
+</script>
+<script type="text/babel">
+// BAC visualizations — four styles, shared prop shape.
+// Props: { range, risk, curve, now, sessionStart, sessionEnd, wakeAt, soberAt, peak, size }
+
+const { useEffect, useState, useRef } = React;
+
+function riskColor(risk) {
+  return risk === 'red' ? 'var(--red)' : risk === 'yellow' ? 'var(--yellow)' : 'var(--green)';
+}
+function riskLabel(risk) {
+  return risk === 'red' ? 'Stop.' : risk === 'yellow' ? 'Ease up.' : 'Pacing well.';
+}
+
+// ─── Curve (hero) ─────────────────────────────────────────────
+function BacCurve({ range, risk, curve, now, sessionStart, sessionEnd, wakeAt, peak }) {
+  const W = 340, H = 200;
+  const padL = 8, padR = 8, padT = 16, padB = 28;
+  // domain
+  const tMin = Math.min(sessionStart, curve[0]?.at ?? sessionStart);
+  const tMax = Math.max(sessionEnd, wakeAt ?? sessionEnd, curve[curve.length - 1]?.at ?? sessionEnd);
+  const bMax = Math.max(0.10, (peak ?? 0) * 1.15, range.typical * 1.1);
+  const x = t => padL + ((t - tMin) / (tMax - tMin)) * (W - padL - padR);
+  const y = b => padT + (1 - Math.min(1, b / bMax)) * (H - padT - padB);
+
+  // split curve into past / future
+  const past = curve.filter(p => p.at <= now);
+  const future = curve.filter(p => p.at >= now);
+  const toPath = pts => pts.length ? pts.map((p, i) => `${i === 0 ? 'M' : 'L'}${x(p.at).toFixed(1)},${y(p.bac).toFixed(1)}`).join(' ') : '';
+  const toArea = pts => pts.length ? `${toPath(pts)} L${x(pts[pts.length - 1].at).toFixed(1)},${H - padB} L${x(pts[0].at).toFixed(1)},${H - padB} Z` : '';
+
+  const nowBac = (curve.find(p => p.at >= now)?.bac) ?? range.typical;
+  const color = riskColor(risk);
+
+  // tick marks: hour lines
+  const hourMs = 60 * 60 * 1000;
+  const firstHour = Math.ceil(tMin / hourMs) * hourMs;
+  const hours = [];
+  for (let t = firstHour; t < tMax; t += hourMs) hours.push(t);
+
+  // risk zone backgrounds (y-bands)
+  const yellowY = y(0.04);
+  const redY = y(0.06);
+
+  return (
+    <svg viewBox={`0 0 ${W} ${H}`} width="100%" height={H}>
+      <defs>
+        <linearGradient id="curve-fill" x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0%" stopColor={color} stopOpacity="0.32" />
+          <stop offset="100%" stopColor={color} stopOpacity="0" />
+        </linearGradient>
+        <linearGradient id="curve-fill-future" x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0%" stopColor={color} stopOpacity="0.16" />
+          <stop offset="100%" stopColor={color} stopOpacity="0" />
+        </linearGradient>
+      </defs>
+
+      {/* risk bands */}
+      <rect x={padL} y={redY} width={W - padL - padR} height={H - padB - redY}
+        fill="var(--red)" opacity="0.02" />
+      <rect x={padL} y={yellowY} width={W - padL - padR} height={redY - yellowY}
+        fill="var(--yellow)" opacity="0.02" />
+
+      {/* y-axis BAC thresholds */}
+      {[0.04, 0.06].map(v => (
+        <g key={v}>
+          <line x1={padL} x2={W - padR} y1={y(v)} y2={y(v)} stroke="var(--line-2)" strokeDasharray="2 4" strokeOpacity="0.6" />
+          <text x={W - padR} y={y(v) - 3} textAnchor="end" fontSize="9"
+            fontFamily="var(--font-mono)" fill="var(--ink-3)">{v.toFixed(2)}</text>
+        </g>
+      ))}
+
+      {/* hour ticks */}
+      {hours.map(t => (
+        <line key={t} x1={x(t)} x2={x(t)} y1={H - padB} y2={H - padB + 3}
+          stroke="var(--ink-3)" strokeOpacity="0.5" />
+      ))}
+      {hours.map((t, i) => (i % 2 === 0) && (
+        <text key={`l${t}`} x={x(t)} y={H - padB + 14} textAnchor="middle"
+          fontSize="9" fontFamily="var(--font-mono)" fill="var(--ink-3)">
+          {new Date(t).getHours().toString().padStart(2, '0')}
+        </text>
+      ))}
+
+      {/* past filled area */}
+      <path d={toArea(past)} fill="url(#curve-fill)" />
+      <path d={toPath(past)} fill="none" stroke={color} strokeWidth="2" strokeLinecap="round" />
+
+      {/* future (forecast) — dashed */}
+      <path d={toArea(future)} fill="url(#curve-fill-future)" />
+      <path d={toPath(future)} fill="none" stroke={color} strokeOpacity="0.55"
+        strokeWidth="2" strokeDasharray="3 4" strokeLinecap="round" />
+
+      {/* wake marker */}
+      {wakeAt && wakeAt > tMin && wakeAt < tMax && (
+        <g>
+          <line x1={x(wakeAt)} x2={x(wakeAt)} y1={padT} y2={H - padB}
+            stroke="var(--ink-2)" strokeOpacity="0.3" strokeDasharray="1 3" />
+          <text x={x(wakeAt)} y={padT + 8} textAnchor="middle" fontSize="9"
+            fontFamily="var(--font-mono)" fill="var(--ink-2)">WAKE</text>
+        </g>
+      )}
+
+      {/* now dot */}
+      <line x1={x(now)} x2={x(now)} y1={padT} y2={H - padB}
+        stroke="var(--ink)" strokeOpacity="0.3" />
+      <circle cx={x(now)} cy={y(nowBac)} r="5" fill={color} />
+      <circle cx={x(now)} cy={y(nowBac)} r="9" fill={color} opacity="0.2">
+        <animate attributeName="r" values="6;11;6" dur="2.6s" repeatCount="indefinite" />
+        <animate attributeName="opacity" values="0.35;0;0.35" dur="2.6s" repeatCount="indefinite" />
+      </circle>
+    </svg>
+  );
+}
+
+// ─── Orb (liquid blob) ────────────────────────────────────────
+function BacOrb({ range, risk }) {
+  const color = riskColor(risk);
+  const pct = Math.min(1, range.typical / 0.10);
+  const intensity = 0.3 + pct * 0.7;
+  return (
+    <div style={{
+      position: 'relative', width: 220, height: 220, margin: '12px auto',
+    }}>
+      <svg viewBox="0 0 220 220" width="220" height="220">
+        <defs>
+          <radialGradient id="orb-grad" cx="40%" cy="35%" r="65%">
+            <stop offset="0%" stopColor={color} stopOpacity={intensity} />
+            <stop offset="55%" stopColor={color} stopOpacity={intensity * 0.5} />
+            <stop offset="100%" stopColor={color} stopOpacity="0" />
+          </radialGradient>
+          <filter id="orb-blur"><feGaussianBlur stdDeviation="8" /></filter>
+        </defs>
+        <circle cx="110" cy="110" r="96" fill="url(#orb-grad)" filter="url(#orb-blur)">
+          <animate attributeName="r" values="94;100;94" dur="3.4s" repeatCount="indefinite" />
+        </circle>
+        <circle cx="110" cy="110" r="82" fill="none" stroke={color} strokeOpacity="0.3" strokeWidth="0.5" />
+        <circle cx="110" cy="110" r="68" fill="none" stroke={color} strokeOpacity="0.15" strokeWidth="0.5" />
+      </svg>
+    </div>
+  );
+}
+
+// ─── Ring (arc gauge, refined) ────────────────────────────────
+function BacRing({ range, risk }) {
+  const SIZE = 220, STROKE = 3, R = (SIZE - STROKE) / 2 - 4;
+  const C = 2 * Math.PI * R;
+  const pct = Math.min(1, range.typical / 0.10);
+  const color = riskColor(risk);
+  // tick ring: 40 ticks
+  const ticks = [];
+  for (let i = 0; i < 60; i++) {
+    const a = (i / 60) * Math.PI * 2 - Math.PI / 2;
+    const active = i / 60 <= pct;
+    const r1 = R - 4, r2 = R + (active ? 6 : 2);
+    ticks.push({ x1: SIZE/2 + Math.cos(a) * r1, y1: SIZE/2 + Math.sin(a) * r1, x2: SIZE/2 + Math.cos(a) * r2, y2: SIZE/2 + Math.sin(a) * r2, active });
+  }
+  return (
+    <svg viewBox={`0 0 ${SIZE} ${SIZE}`} width={SIZE} height={SIZE}>
+      {ticks.map((t, i) => (
+        <line key={i} x1={t.x1} y1={t.y1} x2={t.x2} y2={t.y2}
+          stroke={t.active ? color : 'var(--line-2)'}
+          strokeWidth={t.active ? 1.5 : 1}
+          strokeOpacity={t.active ? 1 : 0.5}
+          strokeLinecap="round" />
+      ))}
+      <circle cx={SIZE/2} cy={SIZE/2} r={R - 10} fill="none" stroke="var(--line)" strokeWidth="0.5" />
+    </svg>
+  );
+}
+
+// ─── Numeric (type-forward) ───────────────────────────────────
+function BacNumericDecor({ range, risk }) {
+  const color = riskColor(risk);
+  return (
+    <div style={{ width: 220, height: 220, position: 'relative', margin: '0 auto' }}>
+      <div style={{
+        position: 'absolute', inset: 0, border: `1px solid ${color}`,
+        borderRadius: '50%', opacity: 0.2,
+      }} />
+      <div style={{
+        position: 'absolute', inset: 24, border: `1px solid ${color}`,
+        borderRadius: '50%', opacity: 0.08,
+      }} />
+    </div>
+  );
+}
+
+window.HBViz = { BacCurve, BacOrb, BacRing, BacNumericDecor, riskColor, riskLabel };
+
+</script>
+<script type="text/babel">
+// Session (hero) — and Start Session, Tracker sheet, nav
+const { useMemo, useEffect: uE, useState: uS } = React;
+
+function fmtClock(ms, now) {
+  if (!ms) return '—';
+  const d = new Date(ms);
+  const t = `${d.getHours().toString().padStart(2,'0')}:${d.getMinutes().toString().padStart(2,'0')}`;
+  const nowD = new Date(now);
+  const isTomorrow = d.getDate() !== nowD.getDate() || d.getMonth() !== nowD.getMonth();
+  return isTomorrow ? `${t} tmrw` : t;
+}
+function fmtDur(ms) {
+  const m = Math.max(0, Math.floor(ms / 60000));
+  const h = Math.floor(m / 60);
+  const mm = m % 60;
+  return h > 0 ? `${h}h ${mm}m` : `${mm}m`;
+}
+
+// ─────── SESSION PAGE ───────
+function SessionPage({ onOpenTracker, onOpenEnd }) {
+  const { active, profile, visual } = HB.useStore();
+  const [now, setNow] = uS(Date.now());
+  uE(() => {
+    const id = setInterval(() => setNow(Date.now()), 15_000);
+    return () => clearInterval(id);
+  }, []);
+
+  if (!active) return <StartSessionPage />;
+
+  const inputs = { profile, drinks: active.drinks, food: active.food, at: now };
+  const range = BAC.computeBacRange(inputs);
+  const risk = BAC.riskFor(range.typical);
+  const sober = BAC.soberAtMs(inputs);
+  const sessionEndsAt = active.startedAt + active.expectedHours * 3600_000;
+  const wakeAt = active.wakeAtMs;
+  const peak = BAC.peakBacInWindow(profile, active.drinks, active.food, active.startedAt,
+    Math.max(sessionEndsAt, wakeAt ?? sessionEndsAt));
+  const bacAtWake = wakeAt ? BAC.computeBacAt({ profile, drinks: active.drinks, food: active.food, at: wakeAt }) : 0;
+  const waterDef = BAC.waterDeficit(active.drinks, active.water.length);
+  const hRisk = BAC.hangoverRiskFor(peak, bacAtWake, waterDef);
+  const drinksLeftHang = wakeAt ? BAC.drinksUntilHangover(inputs, sessionEndsAt, wakeAt) : null;
+  const legalLeft = BAC.suggestedDrinksRemaining(inputs, sessionEndsAt, 1.4, 0.045);
+  const behind = BAC.waterBehind(active.drinks, active.water.length);
+
+  // curve from start → max(sessionEnd, wake)
+  const curve = useMemo(() =>
+    BAC.bacCurve(profile, active.drinks, active.food,
+      active.startedAt,
+      Math.max(sessionEndsAt, (wakeAt ?? 0) + 60_000),
+      100),
+  [profile, active.drinks, active.food, active.startedAt, sessionEndsAt, wakeAt]);
+
+  const color = HBViz.riskColor(risk);
+
+  return (
+    <div className="hb-scroll" data-risk={risk}>
+      {/* masthead */}
+      <div className="flex items-center justify-between">
+        <div>
+          <div className="eyebrow">Tonight · {new Date(active.startedAt).toLocaleDateString(undefined,{weekday:'short', month:'short', day:'numeric'})}</div>
+          <div className="display" style={{ fontSize: 36, marginTop: 2 }}>
+            Hi, <em style={{ color: 'var(--accent)' }}>{profile.name}.</em>
+          </div>
+        </div>
+        <TinyMenu />
+      </div>
+
+      {/* big number + unit */}
+      <div className="mt-6" style={{ position: 'relative' }}>
+        <div style={{ display: 'flex', alignItems: 'baseline', gap: 8 }}>
+          <div className="display num" style={{
+            fontSize: 96, fontWeight: 300, lineHeight: 0.9,
+            color: 'var(--ink)', letterSpacing: '-0.04em',
+          }}>
+            <AnimatedDecimal value={range.typical} decimals={3} />
+          </div>
+          <div className="eyebrow" style={{ marginBottom: 14 }}>% BAC</div>
+        </div>
+        <div className="mono" style={{ fontSize: 11, color: 'var(--ink-3)', marginTop: -4 }}>
+          range {range.low.toFixed(3)}–{range.high.toFixed(3)} · β typical
+        </div>
+        <div className="flex items-center gap-2 mt-3">
+          <span style={{ width: 6, height: 6, borderRadius: 99, background: color, boxShadow: `0 0 12px ${color}` }} />
+          <span className="display hb-italic" style={{ fontSize: 22, color }}>
+            {HBViz.riskLabel(risk)}
+          </span>
+        </div>
+      </div>
+
+      {/* viz */}
+      <div className="hb-card mt-4" style={{ paddingTop: 14, paddingBottom: 10 }}>
+        {visual === 'curve' && (
+          <>
+            <div className="flex items-center justify-between mb-2">
+              <div className="eyebrow">Night curve</div>
+              <div className="mono" style={{ fontSize: 10, color: 'var(--ink-3)' }}>
+                peak · {peak.toFixed(3)}
+              </div>
+            </div>
+            <HBViz.BacCurve
+              range={range} risk={risk} curve={curve} now={now}
+              sessionStart={active.startedAt} sessionEnd={sessionEndsAt}
+              wakeAt={wakeAt} peak={peak} />
+          </>
+        )}
+        {visual === 'orb' && (
+          <div>
+            <div className="eyebrow" style={{ textAlign: 'center' }}>Liquid state</div>
+            <HBViz.BacOrb range={range} risk={risk} />
+            <div className="mono" style={{ textAlign: 'center', fontSize: 11, color: 'var(--ink-3)', marginTop: -8 }}>
+              intensity tracks BAC
+            </div>
+          </div>
+        )}
+        {visual === 'ring' && (
+          <div style={{ position: 'relative', display: 'flex', justifyContent: 'center' }}>
+            <HBViz.BacRing range={range} risk={risk} />
+          </div>
+        )}
+        {visual === 'numeric' && (
+          <div style={{ position: 'relative', padding: '12px 0' }}>
+            <HBViz.BacNumericDecor range={range} risk={risk} />
+            <div style={{
+              position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center',
+              fontFamily: 'var(--font-display)', fontSize: 14, color: 'var(--ink-2)',
+              fontStyle: 'italic',
+            }}>
+              drink slowly.
+            </div>
+          </div>
+        )}
+      </div>
+
+      {/* stat row */}
+      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10, marginTop: 12 }}>
+        {active.planToDrive ? (
+          <StatTile title="Under 0.05"
+            big={legalLeft.toString()}
+            sub={`drink${legalLeft === 1 ? '' : 's'} left`}
+            flavor="driving cap" />
+        ) : (
+          <StatTile title="Projected peak"
+            big={peak.toFixed(3)}
+            sub="max BAC tonight"
+            flavor="with β 0.15" />
+        )}
+        <StatTile title="Sober by"
+          big={sober ? fmtClock(sober, now) : '—'}
+          sub="est. clearance"
+          flavor="0.00% BAC" />
+      </div>
+
+      {/* Hangover card (only if not driving) */}
+      {!active.planToDrive && (
+        <HangoverCard
+          risk={hRisk} drinksLeft={drinksLeftHang}
+          wakeAt={wakeAt} now={now} bacAtWake={bacAtWake} />
+      )}
+
+      {active.planToDrive && risk !== 'green' && (
+        <div className="hb-card mt-3" style={{ borderColor: 'var(--red)', background: 'rgba(217,106,106,0.06)' }}>
+          <div className="eyebrow" style={{ color: 'var(--red)' }}>Do not drive</div>
+          <div className="display mt-1" style={{ fontSize: 20, color: 'var(--ink)' }}>
+            {risk === 'red'
+              ? 'You are over the 0.05 limit. Get a ride. Seriously.'
+              : 'Approaching the 0.05 limit. Plan a ride now.'}
+          </div>
+          <div className="mono mt-2" style={{ fontSize: 11, color: 'var(--ink-3)' }}>
+            This app is not a breathalyzer. The only safe BAC to drive is 0.00.
+          </div>
+        </div>
+      )}
+
+      {/* Water nudge */}
+      {behind && (
+        <div className="hb-card mt-3" style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+          <div style={{
+            width: 42, height: 42, borderRadius: 12, background: 'var(--bg-3)',
+            display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0,
+          }}>
+            <svg width="20" height="22" viewBox="0 0 20 22"><path d="M10 2C10 2 3 10 3 15a7 7 0 1014 0C17 10 10 2 10 2z" fill="none" stroke="var(--blue)" strokeWidth="1.3" /></svg>
+          </div>
+          <div style={{ flex: 1 }}>
+            <div className="eyebrow">Hydration deficit</div>
+            <div className="display" style={{ fontSize: 16 }}>
+              You're {waterDef} water{waterDef === 1 ? '' : 's'} behind. Catch up.
+            </div>
+          </div>
+          <button className="hb-btn hb-btn-ghost" style={{ minHeight: 36, padding: '0 12px', fontSize: 13 }}
+            onClick={() => onOpenTracker('water')}>
+            + Water
+          </button>
+        </div>
+      )}
+
+      {/* Session meta */}
+      <SessionMeta active={active} now={now} />
+
+      {/* End */}
+      <button
+        onClick={onOpenEnd}
+        className="mono mt-6"
+        style={{ width: '100%', textAlign: 'center', fontSize: 11, letterSpacing: '0.18em', textTransform: 'uppercase', color: 'var(--ink-3)', padding: 14 }}>
+        End session
+      </button>
+      <div className="mono" style={{ textAlign: 'center', fontSize: 10, color: 'var(--ink-3)', marginTop: -4 }}>
+        estimates only. not a breathalyzer.
+      </div>
+
+      <FAB onClick={() => onOpenTracker('drink')} pulse={behind} />
+    </div>
+  );
+}
+
+function StatTile({ title, big, sub, flavor }) {
+  return (
+    <div className="hb-card" style={{ padding: 14 }}>
+      <div className="eyebrow">{title}</div>
+      <div className="display num mt-1" style={{ fontSize: 30, color: 'var(--ink)', lineHeight: 1 }}>{big}</div>
+      <div style={{ color: 'var(--ink-2)', fontSize: 12, marginTop: 4 }}>{sub}</div>
+      <div className="mono" style={{ fontSize: 10, color: 'var(--ink-3)', marginTop: 2 }}>{flavor}</div>
+    </div>
+  );
+}
+
+function HangoverCard({ risk, drinksLeft, wakeAt, now, bacAtWake }) {
+  const tone = {
+    low: { txt: 'Low. Tomorrow-you is a fan.', col: 'var(--green)' },
+    moderate: { txt: 'Moderate. Drink water.', col: 'var(--yellow)' },
+    high: { txt: 'High. Morning will be a chore.', col: 'var(--red)' },
+    severe: { txt: 'Severe. Cancel your plans.', col: 'var(--red)' },
+  }[risk];
+  return (
+    <div className="hb-card mt-3">
+      <div className="flex items-center justify-between">
+        <div className="eyebrow">Hangover forecast</div>
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--ink-3)" strokeWidth="1.5">
+          <path d="M21 12.79A9 9 0 1111.21 3 7 7 0 0021 12.79z" /></svg>
+      </div>
+      <div className="display mt-1" style={{ fontSize: 22, color: tone.col }}>{tone.txt}</div>
+      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10, marginTop: 12 }}>
+        <div className="hb-card-inset">
+          <div className="eyebrow">Drinks before it turns</div>
+          <div className="display num" style={{ fontSize: 30, marginTop: 2, lineHeight: 1 }}>
+            {drinksLeft === null ? '—' : drinksLeft}
+          </div>
+          <div className="mono" style={{ fontSize: 10, color: 'var(--ink-3)', marginTop: 2 }}>
+            {wakeAt ? '~1.4 std each' : 'set a wake time'}
+          </div>
+        </div>
+        <div className="hb-card-inset">
+          <div className="eyebrow">BAC at wake</div>
+          <div className="display num" style={{ fontSize: 30, marginTop: 2, lineHeight: 1 }}>
+            {wakeAt ? bacAtWake.toFixed(3) : '—'}
+          </div>
+          <div className="mono" style={{ fontSize: 10, color: 'var(--ink-3)', marginTop: 2 }}>
+            {wakeAt ? fmtClock(wakeAt, now) : 'no wake set'}
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function SessionMeta({ active, now }) {
+  const elapsed = Math.max(0, now - active.startedAt);
+  const exp = active.expectedHours * 3600_000;
+  const rem = exp - elapsed;
+  const over = rem < 0;
+  const pct = Math.min(1, elapsed / Math.max(exp, 1));
+  return (
+    <div className="hb-card mt-3" style={{ padding: 0, overflow: 'hidden' }}>
+      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr' }}>
+        <MetaCell
+          label="Started"
+          value={fmtClock(active.startedAt, now)}
+          sub={`${fmtDur(elapsed)} ago`} />
+        <MetaCell
+          label={over ? 'Overtime' : 'Left in plan'}
+          value={`${fmtDur(Math.abs(rem))}`}
+          sub={`of ${active.expectedHours}h plan`}
+          accent={over} />
+      </div>
+      <div style={{ height: 2, background: 'var(--line)' }}>
+        <div style={{ height: '100%', background: 'var(--accent)', width: `${pct * 100}%`, transition: 'width .6s' }} />
+      </div>
+    </div>
+  );
+}
+function MetaCell({ label, value, sub, accent }) {
+  return (
+    <div style={{ padding: '14px 16px', borderRight: '1px solid var(--line)' }}>
+      <div className="eyebrow">{label}</div>
+      <div className="display num mt-1" style={{ fontSize: 20, color: accent ? 'var(--yellow)' : 'var(--ink)' }}>{value}</div>
+      <div className="mono" style={{ fontSize: 10, color: 'var(--ink-3)', marginTop: 2 }}>{sub}</div>
+    </div>
+  );
+}
+
+function FAB({ onClick, pulse }) {
+  return (
+    <button onClick={onClick}
+      style={{
+        position: 'absolute',
+        right: 20, bottom: 96,
+        width: 60, height: 60,
+        borderRadius: 20,
+        background: 'var(--ink)',
+        color: 'var(--bg)',
+        display: 'flex', alignItems: 'center', justifyContent: 'center',
+        boxShadow: '0 12px 24px rgba(0,0,0,0.45), 0 0 0 1px var(--line-2)',
+        zIndex: 25,
+      }}>
+      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
+        <path d="M12 5v14M5 12h14"/>
+      </svg>
+      {pulse && (
+        <span style={{
+          position: 'absolute', top: -2, right: -2, width: 10, height: 10, borderRadius: 99,
+          background: 'var(--blue)', border: '2px solid var(--bg)',
+        }} />
+      )}
+    </button>
+  );
+}
+
+function AnimatedDecimal({ value, decimals = 3 }) {
+  return <span>{value.toFixed(decimals)}</span>;
+}
+
+function TinyMenu() {
+  const [open, setOpen] = uS(false);
+  const active = HB.useStore(s => s.active);
+  return (
+    <button
+      aria-label="menu"
+      onClick={() => setOpen(v => !v)}
+      style={{
+        width: 42, height: 42, borderRadius: 14,
+        border: '1px solid var(--line)',
+        background: 'var(--bg-2)',
+        display: 'flex', alignItems: 'center', justifyContent: 'center',
+        position: 'relative',
+      }}>
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round">
+        <circle cx="5" cy="12" r="1"/><circle cx="12" cy="12" r="1"/><circle cx="19" cy="12" r="1"/>
+      </svg>
+      {active?.planToDrive && (
+        <span style={{ position: 'absolute', top: -4, right: -4, width: 10, height: 10, borderRadius: 99, background: 'var(--red)', border: '2px solid var(--bg)' }} />
+      )}
+    </button>
+  );
+}
+
+window.HBSession = { SessionPage, fmtClock, fmtDur };
+
+</script>
+<script type="text/babel">
+// Start Session, Onboarding, Tracker, Recap, History, Settings, ConfirmEnd
+const { useState: sS, useEffect: sE, useMemo: sM } = React;
+
+// ─────── START SESSION ───────
+function StartSessionPage() {
+  const profile = HB.useStore(s => s.profile);
+  const [hours, setHours] = sS(4);
+  const [wakeDraft, setWakeDraft] = sS(() => {
+    const d = new Date(); d.setDate(d.getDate() + 1); d.setHours(8, 0, 0, 0);
+    const pad = n => String(n).padStart(2, '0');
+    return `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
+  });
+  const [useWake, setUseWake] = sS(true);
+  const [driving, setDriving] = sS(false);
+  const wakeMs = sM(() => { const n = new Date(wakeDraft).getTime(); return Number.isFinite(n) ? n : undefined; }, [wakeDraft]);
+
+  return (
+    <div className="hb-scroll">
+      <div className="mt-4">
+        <div className="eyebrow">Tonight</div>
+        <div className="display" style={{ fontSize: 42, marginTop: 4, lineHeight: 1 }}>
+          Evening, <em style={{ color: 'var(--accent)' }}>{profile?.name || 'friend'}.</em>
+        </div>
+        <p style={{ color: 'var(--ink-2)', fontSize: 15, marginTop: 10, lineHeight: 1.45, fontFamily: 'var(--font-display)' }}>
+          How long will this take? <span style={{ fontStyle: 'italic', color: 'var(--ink-3)' }}>Be honest.</span>
+        </p>
+      </div>
+
+      <div className="hb-card mt-4" style={{ padding: 18 }}>
+        <div className="eyebrow">Expected duration</div>
+        <div className="flex items-center" style={{ gap: 4, marginTop: 6 }}>
+          <div className="display num" style={{ fontSize: 84, lineHeight: 0.9, color: 'var(--accent)' }}>{hours}</div>
+          <div className="display" style={{ fontSize: 28, color: 'var(--ink-2)', paddingTop: 16 }}>h</div>
+        </div>
+        <input type="range" min="1" max="12" step="0.5" value={hours}
+          onChange={e => setHours(parseFloat(e.target.value))}
+          style={{ width: '100%', marginTop: 8, accentColor: 'var(--accent)' }} />
+        <div className="mono" style={{ display: 'flex', justifyContent: 'space-between', fontSize: 10, color: 'var(--ink-3)', marginTop: 4 }}>
+          <span>1h</span><span>6h</span><span>12h</span>
+        </div>
+
+        <div className="mt-6">
+          <div className="flex items-center justify-between">
+            <div className="eyebrow">Wake time</div>
+            <button className="mono" style={{ fontSize: 10, color: 'var(--accent)', letterSpacing: '0.1em' }}
+              onClick={() => setUseWake(v => !v)}>
+              {useWake ? "SKIP" : "SET"}
+            </button>
+          </div>
+          {useWake ? (
+            <input type="datetime-local" className="hb-input mt-2" value={wakeDraft}
+              onChange={e => setWakeDraft(e.target.value)} />
+          ) : (
+            <div className="mono mt-2" style={{ fontSize: 12, color: 'var(--ink-3)' }}>
+              — sleeping it off, whenever
+            </div>
+          )}
+        </div>
+
+        <div className="mt-6">
+          <div className="eyebrow">Driving later?</div>
+          <div className="hb-seg mt-2">
+            <button className={!driving ? 'active' : ''} onClick={() => setDriving(false)}>No</button>
+            <button className={driving ? 'active' : ''} onClick={() => setDriving(true)}
+              style={driving ? { background: 'var(--red)', color: '#fff', borderColor: 'var(--red)' } : {}}>
+              Yes
+            </button>
+          </div>
+          {driving && (
+            <div className="mono mt-2" style={{ fontSize: 10, color: 'var(--red)' }}>
+              We'll switch the interface to a driving-safe view. The only safe BAC is 0.00.
+            </div>
+          )}
+        </div>
+
+        <button className="hb-btn hb-btn-primary w-full mt-6"
+          onClick={() => HB.actions.startSession({ expectedHours: hours, wakeAtMs: useWake ? wakeMs : undefined, planToDrive: driving })}>
+          Start the evening →
+        </button>
+      </div>
+
+      <div className="mono mt-4" style={{ textAlign: 'center', fontSize: 10, color: 'var(--ink-3)' }}>
+        estimates only. not a breathalyzer.
+      </div>
+    </div>
+  );
+}
+
+// ─────── ONBOARDING ───────
+function Onboarding() {
+  const [step, setStep] = sS(0);
+  const [name, setName] = sS('');
+  const [sex, setSex] = sS(null);
+  const [age, setAge] = sS('');
+  const [heightCm, setHeightCm] = sS('');
+  const [weightKg, setWeightKg] = sS('');
+  const [err, setErr] = sS(null);
+
+  function next() {
+    setErr(null);
+    if (step === 0) { if (!name.trim()) return setErr("Need a name. Any name."); setStep(1); return; }
+    if (step === 1) { if (!sex) return setErr("Pick one. It's for math."); setStep(2); return; }
+    if (step === 2) {
+      const a = parseInt(age); const h = parseFloat(heightCm); const w = parseFloat(weightKg);
+      if (!Number.isFinite(a) || a < 18) return setErr("Must be 18 or older.");
+      if (!Number.isFinite(h) || h < 100 || h > 250) return setErr("Height: 100–250 cm.");
+      if (!Number.isFinite(w) || w < 35 || w > 250) return setErr("Weight: 35–250 kg.");
+      setStep(3); return;
+    }
+    if (step === 3) {
+      HB.actions.setProfile({
+        name: name.trim(), sex, age: parseInt(age), heightCm: parseFloat(heightCm), weightKg: parseFloat(weightKg),
+        acceptedDisclaimerAt: Date.now(),
+      });
+    }
+  }
+
+  return (
+    <div className="hb-scroll" style={{ display: 'flex', flexDirection: 'column' }}>
+      <div className="flex items-center justify-between mt-2">
+        <div className="mono" style={{ fontSize: 10, color: 'var(--ink-3)', letterSpacing: '0.2em' }}>
+          {String(step + 1).padStart(2, '0')} / 04
+        </div>
+        <div className="mono" style={{ fontSize: 10, color: 'var(--ink-3)' }}>HANGOVER BUDDY</div>
+      </div>
+      <div style={{ height: 2, background: 'var(--line)', marginTop: 8, borderRadius: 2, overflow: 'hidden' }}>
+        <div style={{ height: '100%', background: 'var(--accent)', width: `${((step+1)/4)*100}%`, transition: 'width .4s' }} />
+      </div>
+
+      <div className="mt-8" style={{ flex: 1 }}>
+        {step === 0 && (
+          <>
+            <div className="eyebrow">Introductions</div>
+            <h1 className="display mt-2" style={{ fontSize: 40, lineHeight: 1.05 }}>
+              What should we <em style={{ color: 'var(--accent)' }}>call you</em> tomorrow at 9 a.m.?
+            </h1>
+            <input className="hb-input mt-6" placeholder="Name"
+              value={name} onChange={e => setName(e.target.value)}
+              style={{ height: 56, fontSize: 20, fontFamily: 'var(--font-display)' }}
+              autoFocus />
+          </>
+        )}
+        {step === 1 && (
+          <>
+            <div className="eyebrow">Biology, briefly</div>
+            <h1 className="display mt-2" style={{ fontSize: 38, lineHeight: 1.05 }}>
+              The Widmark formula needs <em style={{ color: 'var(--accent)' }}>one number.</em>
+            </h1>
+            <p style={{ color: 'var(--ink-2)', fontSize: 13, marginTop: 10 }}>
+              r = 0.68 if male, 0.55 if female. That's it. No judgement, just arithmetic.
+            </p>
+            <div className="hb-seg mt-6" style={{ height: 56 }}>
+              <button className={sex === 'male' ? 'active' : ''} onClick={() => setSex('male')}>Male</button>
+              <button className={sex === 'female' ? 'active' : ''} onClick={() => setSex('female')}>Female</button>
+            </div>
+          </>
+        )}
+        {step === 2 && (
+          <>
+            <div className="eyebrow">Numbers</div>
+            <h1 className="display mt-2" style={{ fontSize: 38, lineHeight: 1.05 }}>
+              Tell us the <em style={{ color: 'var(--accent)' }}>boring stuff.</em>
+            </h1>
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 10, marginTop: 20 }}>
+              <div>
+                <div className="eyebrow">Age</div>
+                <input className="hb-input mt-1" type="number" inputMode="numeric" placeholder="25" value={age} onChange={e => setAge(e.target.value)} />
+              </div>
+              <div>
+                <div className="eyebrow">Height cm</div>
+                <input className="hb-input mt-1" type="number" inputMode="decimal" placeholder="178" value={heightCm} onChange={e => setHeightCm(e.target.value)} />
+              </div>
+              <div>
+                <div className="eyebrow">Weight kg</div>
+                <input className="hb-input mt-1" type="number" inputMode="decimal" placeholder="75" value={weightKg} onChange={e => setWeightKg(e.target.value)} />
+              </div>
+            </div>
+            <div className="hb-card-inset mt-6">
+              <div className="mono" style={{ fontSize: 10, color: 'var(--ink-3)', letterSpacing: '0.1em' }}>PRIVACY</div>
+              <div style={{ color: 'var(--ink-2)', fontSize: 13, marginTop: 4 }}>
+                Everything stays on this phone. No account. No servers. No newsletter.
+              </div>
+            </div>
+          </>
+        )}
+        {step === 3 && (
+          <>
+            <div className="eyebrow">The deal</div>
+            <h1 className="display mt-2" style={{ fontSize: 36, lineHeight: 1.05 }}>
+              This app <em style={{ color: 'var(--accent-2)' }}>estimates.</em> It doesn't measure.
+            </h1>
+            <div className="hb-card-inset mt-4">
+              <div style={{ color: 'var(--ink), fontSize: 13', lineHeight: 1.55 }}>
+                BAC is computed from your weight, biological sex, what you log, and time. It's a model. Stomach contents, genetics, sleep, mood, altitude and bartender generosity all throw it off.
+              </div>
+              <div className="mt-2" style={{ color: 'var(--ink-2)', fontSize: 13, lineHeight: 1.55 }}>
+                <strong style={{ color: 'var(--red)' }}>Never</strong> use this to decide if you can drive. The only safe BAC to drive is 0.00%.
+              </div>
+            </div>
+            <div className="hb-card-inset mt-3">
+              <div style={{ color: 'var(--ink-2)', fontSize: 13 }}>
+                If you agree, your data stays on this device. Delete any time. You can reset from Settings.
+              </div>
+            </div>
+          </>
+        )}
+      </div>
+
+      {err && (
+        <div className="mono" style={{ color: 'var(--red)', fontSize: 12, marginTop: 8 }}>{err}</div>
+      )}
+      <div className="flex gap-2 mt-4">
+        {step > 0 && (
+          <button className="hb-btn hb-btn-ghost" style={{ flex: 0, paddingInline: 18 }} onClick={() => setStep(s => Math.max(0, s - 1))}>
+            ←
+          </button>
+        )}
+        <button className="hb-btn hb-btn-primary" style={{ flex: 1 }} onClick={next}>
+          {step < 3 ? 'Continue →' : 'Accept & enter'}
+        </button>
+      </div>
+    </div>
+  );
+}
+
+// ─────── TRACKER SHEET ───────
+function TrackerSheet({ open, initialTab, onClose }) {
+  const active = HB.useStore(s => s.active);
+  const [tab, setTab] = sS(initialTab || 'drink');
+  sE(() => { if (open) setTab(initialTab || 'drink'); }, [open, initialTab]);
+  if (!open || !active) return null;
+
+  return (
+    <>
+      <div className="hb-sheet-backdrop" onClick={onClose} />
+      <div className="hb-sheet">
+        <div className="hb-sheet-grip" />
+        <div className="flex items-center justify-between mb-3">
+          <div className="display" style={{ fontSize: 26 }}>Add to the ledger</div>
+          <button onClick={onClose} style={{ width: 36, height: 36, borderRadius: 99, background: 'var(--bg-3)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--ink-2)' }}>×</button>
+        </div>
+        <div className="hb-seg mb-4">
+          <button className={tab==='drink'?'active':''} onClick={() => setTab('drink')}>Drink</button>
+          <button className={tab==='water'?'active':''} onClick={() => setTab('water')}>Water</button>
+          <button className={tab==='food'?'active':''} onClick={() => setTab('food')}>Food</button>
+        </div>
+        {tab === 'drink' && <DrinkPanel drinks={active.drinks} />}
+        {tab === 'water' && <WaterPanel water={active.water} drinks={active.drinks} />}
+        {tab === 'food' && <FoodPanel food={active.food} />}
+      </div>
+    </>
+  );
+}
+
+const DRINK_ICONS = {
+  mid_beer: (c) => <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke={c} strokeWidth="1.5"><path d="M7 7h10l-1 13H8L7 7zM7 7V5h10v2M11 11v5M14 11v5M17 9h2a2 2 0 012 2v4a2 2 0 01-2 2h-2"/></svg>,
+  full_beer: (c) => <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke={c} strokeWidth="1.5"><path d="M7 5h10l-1 15H8L7 5zM17 8h2a2 2 0 012 2v5a2 2 0 01-2 2h-2M10 9v7M14 9v7"/></svg>,
+  wine: (c) => <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke={c} strokeWidth="1.5"><path d="M8 3h8l-1 7a4 4 0 01-3 4v6M7 21h10M12 14a4 4 0 003-4L14 3"/></svg>,
+  spirit: (c) => <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke={c} strokeWidth="1.5"><path d="M8 3h8v5c0 4-4 4-4 8v6M8 3v5c0 4 4 4 4 8M7 21h10"/></svg>,
+  cocktail: (c) => <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke={c} strokeWidth="1.5"><path d="M4 5h16l-8 8-8-8zM12 13v7M8 20h8"/></svg>,
+  custom: (c) => <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke={c} strokeWidth="1.5" strokeLinecap="round"><path d="M12 5v14M5 12h14"/></svg>,
+};
+
+function DrinkPanel({ drinks }) {
+  const [showCustom, setShowCustom] = sS(false);
+  const [customStd, setCustomStd] = sS('1.0');
+  const now = Date.now();
+  return (
+    <div>
+      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
+        {BAC.DRINK_PRESETS.map(p => (
+          <button key={p.type}
+            onClick={() => HB.actions.addDrink({ type: p.type, label: p.label, standardDrinks: p.standardDrinks })}
+            className="hb-card-inset"
+            style={{ display: 'flex', alignItems: 'center', gap: 12, textAlign: 'left', padding: 14, minHeight: 64 }}>
+            <div>{DRINK_ICONS[p.type]('var(--accent)')}</div>
+            <div style={{ flex: 1 }}>
+              <div className="display" style={{ fontSize: 16, lineHeight: 1 }}>{p.label}</div>
+              <div className="mono" style={{ fontSize: 10, color: 'var(--ink-3)', marginTop: 3 }}>{p.sublabel} · {p.standardDrinks} std</div>
+            </div>
+          </button>
+        ))}
+        <button onClick={() => setShowCustom(v => !v)}
+          className="hb-card-inset"
+          style={{ gridColumn: '1 / -1', display: 'flex', alignItems: 'center', gap: 12, textAlign: 'left', padding: 14, border: '1px dashed var(--line-2)' }}>
+          <div>{DRINK_ICONS.custom('var(--ink-2)')}</div>
+          <div>
+            <div className="display" style={{ fontSize: 16, lineHeight: 1 }}>Custom</div>
+            <div className="mono" style={{ fontSize: 10, color: 'var(--ink-3)', marginTop: 3 }}>Enter specific standard drinks</div>
+          </div>
+        </button>
+      </div>
+      {showCustom && (
+        <div className="flex gap-2 mt-3">
+          <input className="hb-input" type="number" step="0.1" min="0" value={customStd} onChange={e => setCustomStd(e.target.value)} />
+          <button className="hb-btn hb-btn-primary" style={{ minHeight: 44 }}
+            onClick={() => { const n = parseFloat(customStd); if (n > 0) { HB.actions.addDrink({ type: 'custom', label: 'Custom', standardDrinks: n }); setShowCustom(false); setCustomStd('1.0'); } }}>
+            Add
+          </button>
+        </div>
+      )}
+      {drinks.length > 0 && (
+        <div className="mt-4">
+          <div className="eyebrow mb-2">Tonight's ledger</div>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+            {[...drinks].reverse().map(d => (
+              <div key={d.id} className="hb-card-inset" style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '10px 12px' }}>
+                <div style={{ opacity: 0.8 }}>{(DRINK_ICONS[d.type] || DRINK_ICONS.custom)('var(--ink-2)')}</div>
+                <div style={{ flex: 1 }}>
+                  <div style={{ fontSize: 14, color: 'var(--ink)' }}>{d.label}</div>
+                  <div className="mono" style={{ fontSize: 10, color: 'var(--ink-3)' }}>
+                    {HBSession.fmtClock(d.at, now)} · {d.standardDrinks.toFixed(1)} std
+                  </div>
+                </div>
+                <button onClick={() => HB.actions.removeDrink(d.id)} style={{ color: 'var(--ink-3)', fontSize: 12, padding: 6 }}>undo</button>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+function WaterPanel({ water, drinks }) {
+  const def = BAC.waterDeficit(drinks, water.length);
+  return (
+    <div>
+      <div className="hb-card-inset">
+        <div className="eyebrow">Rule of thumb</div>
+        <div className="display mt-1" style={{ fontSize: 20 }}>
+          One water per drink. {def > 0 ? <span style={{ color: 'var(--yellow)' }}>You're {def} behind.</span> : <span style={{ color: 'var(--green)' }}>You're on pace.</span>}
+        </div>
+      </div>
+      <button onClick={() => HB.actions.addWater()} className="hb-btn hb-btn-primary w-full mt-3" style={{ minHeight: 60, fontSize: 18 }}>
+        + Log a water
+      </button>
+      {water.length > 0 && (
+        <div className="mt-4">
+          <div className="eyebrow mb-2">Logged · {water.length}</div>
+          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
+            {[...water].reverse().map(w => (
+              <button key={w.id} onClick={() => HB.actions.removeWater(w.id)} className="hb-chip" style={{ color: 'var(--blue)' }}>
+                {HBSession.fmtClock(w.at, Date.now())} ✕
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+function FoodPanel({ food }) {
+  return (
+    <div>
+      <div className="hb-card-inset">
+        <div className="eyebrow">Food slows absorption</div>
+        <div style={{ color: 'var(--ink-2)', fontSize: 13, marginTop: 6 }}>
+          A meal bumps absorption from ~20 to ~75 minutes. Snack is in the middle.
+        </div>
+      </div>
+      <div className="flex gap-2 mt-3">
+        <button onClick={() => HB.actions.addFood('snack')} className="hb-btn hb-btn-ghost" style={{ flex: 1, flexDirection: 'column', minHeight: 88, gap: 2 }}>
+          <span className="display" style={{ fontSize: 18 }}>Snack</span>
+          <span className="mono" style={{ fontSize: 10, color: 'var(--ink-3)' }}>~45 min absorption</span>
+        </button>
+        <button onClick={() => HB.actions.addFood('meal')} className="hb-btn hb-btn-ghost" style={{ flex: 1, flexDirection: 'column', minHeight: 88, gap: 2 }}>
+          <span className="display" style={{ fontSize: 18 }}>Meal</span>
+          <span className="mono" style={{ fontSize: 10, color: 'var(--ink-3)' }}>~75 min absorption</span>
+        </button>
+      </div>
+      {food.length > 0 && (
+        <div className="mt-4">
+          <div className="eyebrow mb-2">Logged</div>
+          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
+            {[...food].reverse().map(f => (
+              <button key={f.id} onClick={() => HB.actions.removeFood(f.id)} className="hb-chip">
+                {f.size} · {HBSession.fmtClock(f.at, Date.now())} ✕
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ─────── CONFIRM END ───────
+function ConfirmEndSheet({ open, onClose, onConfirm, active, now }) {
+  if (!open || !active) return null;
+  const duration = Math.max(0, now - active.startedAt);
+  const peak = BAC.peakBacInWindow(HB.getState().profile, active.drinks, active.food, active.startedAt, now);
+  return (
+    <>
+      <div className="hb-sheet-backdrop" onClick={onClose} />
+      <div className="hb-sheet">
+        <div className="hb-sheet-grip" />
+        <div className="display" style={{ fontSize: 28 }}>End the evening?</div>
+        <p style={{ color: 'var(--ink-2)', fontSize: 14, marginTop: 4, fontFamily: 'var(--font-display)', fontStyle: 'italic' }}>
+          We'll check in with you in the morning. No judgement, mostly.
+        </p>
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 8 }} className="mt-3">
+          <div className="hb-card-inset"><div className="eyebrow">Ran</div><div className="display num mt-1" style={{ fontSize: 22 }}>{HBSession.fmtDur(duration)}</div></div>
+          <div className="hb-card-inset"><div className="eyebrow">Drinks</div><div className="display num mt-1" style={{ fontSize: 22 }}>{active.drinks.length}</div></div>
+          <div className="hb-card-inset"><div className="eyebrow">Peak BAC</div><div className="display num mt-1" style={{ fontSize: 22 }}>{peak.toFixed(3)}</div></div>
+        </div>
+        <div className="flex gap-2 mt-4">
+          <button className="hb-btn hb-btn-ghost" style={{ flex: 1 }} onClick={onClose}>Keep going</button>
+          <button className="hb-btn hb-btn-primary" style={{ flex: 1 }} onClick={onConfirm}>End session</button>
+        </div>
+      </div>
+    </>
+  );
+}
+
+window.HBOther = { StartSessionPage, Onboarding, TrackerSheet, ConfirmEndSheet };
+
+</script>
+<script type="text/babel">
+// History, Morning Recap, Settings
+const { useState: hS, useMemo: hM } = React;
+
+function fmtDate(ms) {
+  const d = new Date(ms);
+  return d.toLocaleDateString(undefined, { weekday: 'short', month: 'short', day: 'numeric' });
+}
+function fmtDurH(ms) {
+  const m = Math.max(0, Math.floor(ms/60000));
+  return `${Math.floor(m/60)}h ${m%60}m`;
+}
+
+const RATING_LABEL = { 1: 'Wrecked', 2: 'Rough', 3: 'Meh', 4: 'Alright', 5: 'Great' };
+const RATING_COLOR = { 1: 'var(--red)', 2: 'var(--red)', 3: 'var(--yellow)', 4: 'var(--green)', 5: 'var(--green)' };
+const SYMPTOMS = ['headache','nausea','tired','queasy','dehydrated','anxious','fine'];
+
+// ── HISTORY ──
+function HistoryPage({ onOpenRecap }) {
+  const history = HB.useStore(s => s.history);
+  return (
+    <div className="hb-scroll">
+      <div className="mt-2">
+        <div className="eyebrow">The ledger</div>
+        <h1 className="display mt-1" style={{ fontSize: 38, lineHeight: 1 }}>
+          <em style={{ color: 'var(--accent)' }}>{history.length}</em> night{history.length===1?'':'s'} on the record.
+        </h1>
+      </div>
+
+      {history.length === 0 ? (
+        <div className="hb-card mt-6" style={{ textAlign: 'center', padding: '40px 20px' }}>
+          <div className="display hb-italic" style={{ fontSize: 18, color: 'var(--ink-2)' }}>
+            Nothing yet. A clean slate.
+          </div>
+          <div className="mono" style={{ fontSize: 11, color: 'var(--ink-3)', marginTop: 6 }}>
+            End a session to log it here.
+          </div>
+        </div>
+      ) : (
+        <div className="mt-4" style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+          {history.map(s => {
+            const total = s.drinks.reduce((a,d)=>a+d.standardDrinks,0);
+            const dur = s.endedAt && s.startedAt ? s.endedAt - s.startedAt : 0;
+            const peak = s.peakBac ?? 0;
+            const r = BAC.riskFor(peak);
+            const rc = HBViz.riskColor(r);
+            return (
+              <div key={s.id} className="hb-card" style={{ padding: 0, overflow: 'hidden' }}>
+                <div style={{ padding: 16, display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 12 }}>
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <div className="flex items-center gap-2">
+                      <span style={{ width: 6, height: 6, borderRadius: 99, background: rc }} />
+                      <div className="mono" style={{ fontSize: 10, color: 'var(--ink-3)', letterSpacing: '0.1em' }}>{fmtDate(s.startedAt).toUpperCase()}</div>
+                    </div>
+                    <div className="display mt-1" style={{ fontSize: 18 }}>
+                      {s.drinks.length} drink{s.drinks.length===1?'':'s'} · {total.toFixed(1)} std
+                    </div>
+                    <div className="mono mt-1" style={{ fontSize: 10, color: 'var(--ink-3)' }}>
+                      {fmtDurH(dur)} · {s.water.length} water · {s.food.length} food
+                    </div>
+                  </div>
+                  <div style={{ textAlign: 'right' }}>
+                    <div className="display num" style={{ fontSize: 28, color: rc, lineHeight: 1 }}>{peak.toFixed(3)}</div>
+                    <div className="mono" style={{ fontSize: 9, color: 'var(--ink-3)', letterSpacing: '0.15em', marginTop: 2 }}>PEAK</div>
+                  </div>
+                </div>
+                {s.recap ? (
+                  <div style={{ borderTop: '1px solid var(--line)', padding: '10px 16px', display: 'flex', alignItems: 'center', gap: 8 }}>
+                    <span style={{ width: 6, height: 6, borderRadius: 99, background: RATING_COLOR[s.recap.rating] }} />
+                    <span className="display" style={{ fontSize: 14, color: 'var(--ink)' }}>{RATING_LABEL[s.recap.rating]}</span>
+                    {s.recap.symptoms.length > 0 && (
+                      <span className="mono" style={{ fontSize: 10, color: 'var(--ink-3)' }}>· {s.recap.symptoms.length} sympt.</span>
+                    )}
+                  </div>
+                ) : (
+                  <button onClick={() => onOpenRecap(s.id)}
+                    style={{ width: '100%', textAlign: 'left', borderTop: '1px solid var(--line)', padding: '12px 16px', color: 'var(--accent)', display: 'flex', justifyContent: 'space-between' }}>
+                    <span className="display" style={{ fontSize: 14, fontStyle: 'italic' }}>How'd the morning treat you?</span>
+                    <span>→</span>
+                  </button>
+                )}
+              </div>
+            );
+          })}
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ── MORNING RECAP ──
+function MorningRecap({ sessionId, onDismiss }) {
+  const session = HB.useStore(s => s.history.find(x => x.id === sessionId));
+  const [rating, setRating] = hS(null);
+  const [syms, setSyms] = hS(new Set());
+  const [note, setNote] = hS('');
+  if (!session) return null;
+
+  function toggle(s) {
+    const n = new Set(syms);
+    if (n.has(s)) n.delete(s);
+    else {
+      if (s === 'fine') { n.clear(); n.add('fine'); }
+      else { n.delete('fine'); n.add(s); }
+    }
+    setSyms(n);
+  }
+  function submit() {
+    if (rating === null) return;
+    HB.actions.submitRecap(sessionId, { rating, symptoms: Array.from(syms), note: note.trim() || undefined, submittedAt: Date.now() });
+    onDismiss();
+  }
+  const total = session.drinks.reduce((a,d)=>a+d.standardDrinks,0);
+  const dur = session.endedAt ? session.endedAt - session.startedAt : 0;
+
+  return (
+    <div style={{ position: 'absolute', inset: 0, background: 'var(--bg)', zIndex: 90, overflowY: 'auto' }}>
+      <div className="hb-scroll" style={{ paddingTop: 58, paddingBottom: 40 }}>
+        <div className="flex items-center justify-between">
+          <div>
+            <div className="eyebrow">Good morning</div>
+            <div className="display mt-1" style={{ fontSize: 14, color: 'var(--ink-2)' }}>{fmtDate(session.startedAt)}</div>
+          </div>
+          <button onClick={onDismiss} style={{ width: 40, height: 40, borderRadius: 99, background: 'var(--bg-3)', color: 'var(--ink-2)' }}>×</button>
+        </div>
+
+        <h1 className="display mt-4" style={{ fontSize: 44, lineHeight: 1.02 }}>
+          So. <em style={{ color: 'var(--accent)' }}>How rough</em> are we?
+        </h1>
+        <p style={{ color: 'var(--ink-2)', fontSize: 13, marginTop: 8, fontFamily: 'var(--font-display)', fontStyle: 'italic' }}>
+          One honest answer helps the forecast get smarter.
+        </p>
+
+        <div className="hb-card mt-5">
+          <div className="eyebrow">Last night</div>
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 10, marginTop: 8 }}>
+            <div><div className="mono" style={{ fontSize: 10, color: 'var(--ink-3)' }}>PEAK</div><div className="display num mt-1" style={{ fontSize: 20 }}>{(session.peakBac ?? 0).toFixed(3)}</div></div>
+            <div><div className="mono" style={{ fontSize: 10, color: 'var(--ink-3)' }}>DRINKS</div><div className="display num mt-1" style={{ fontSize: 20 }}>{session.drinks.length}<span className="mono" style={{ fontSize: 10, color: 'var(--ink-3)', marginLeft: 4 }}>{total.toFixed(1)}s</span></div></div>
+            <div><div className="mono" style={{ fontSize: 10, color: 'var(--ink-3)' }}>DURATION</div><div className="display num mt-1" style={{ fontSize: 20 }}>{fmtDurH(dur)}</div></div>
+          </div>
+          {session.predictedRisk && (
+            <div className="mono mt-3" style={{ fontSize: 11, color: 'var(--ink-3)' }}>
+              we forecast · <span style={{ color: 'var(--ink-2)' }}>{BAC.hangoverLabel(session.predictedRisk).toLowerCase()} hangover</span>
+            </div>
+          )}
+        </div>
+
+        <div className="mt-5 eyebrow">Verdict</div>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', gap: 6, marginTop: 8 }}>
+          {[1,2,3,4,5].map(v => (
+            <button key={v} onClick={() => setRating(v)}
+              className="hb-card-inset"
+              style={{
+                flexDirection: 'column', alignItems: 'center', padding: '12px 0', minHeight: 72,
+                borderColor: rating === v ? RATING_COLOR[v] : 'var(--line)',
+                background: rating === v ? 'var(--bg-2)' : 'var(--bg-3)',
+              }}>
+              <div className="display num" style={{ fontSize: 22, color: rating === v ? RATING_COLOR[v] : 'var(--ink-2)' }}>{v}</div>
+              <div className="mono" style={{ fontSize: 9, color: 'var(--ink-3)', marginTop: 2, letterSpacing: '0.1em' }}>{RATING_LABEL[v].toUpperCase()}</div>
+            </button>
+          ))}
+        </div>
+
+        <div className="mt-5 eyebrow">Symptoms</div>
+        <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginTop: 8 }}>
+          {SYMPTOMS.map(s => (
+            <button key={s} onClick={() => toggle(s)}
+              style={{
+                padding: '8px 14px', borderRadius: 99,
+                background: syms.has(s) ? 'var(--ink)' : 'transparent',
+                color: syms.has(s) ? 'var(--bg)' : 'var(--ink-2)',
+                border: `1px solid ${syms.has(s) ? 'var(--ink)' : 'var(--line-2)'}`,
+                fontSize: 13, textTransform: 'capitalize',
+              }}>
+              {s}
+            </button>
+          ))}
+        </div>
+
+        <div className="mt-5 eyebrow">Anything else</div>
+        <textarea className="hb-textarea mt-2" rows="3"
+          placeholder="what you'd do differently. optional."
+          value={note} onChange={e => setNote(e.target.value)} />
+
+        <button onClick={submit} disabled={rating === null}
+          className="hb-btn hb-btn-primary w-full mt-5">Save the verdict</button>
+        <button onClick={onDismiss} className="hb-btn w-full mt-2" style={{ color: 'var(--ink-3)' }}>Skip for now</button>
+      </div>
+    </div>
+  );
+}
+
+// ── SETTINGS ──
+function SettingsPage() {
+  const profile = HB.useStore(s => s.profile);
+  return (
+    <div className="hb-scroll">
+      <div className="mt-2">
+        <div className="eyebrow">Preferences</div>
+        <h1 className="display mt-1" style={{ fontSize: 38, lineHeight: 1 }}>Settings.</h1>
+      </div>
+
+      <div className="hb-card mt-5">
+        <div className="eyebrow">Profile</div>
+        <div className="flex items-center justify-between mt-2">
+          <div>
+            <div className="display" style={{ fontSize: 20 }}>{profile?.name}</div>
+            <div className="mono" style={{ fontSize: 11, color: 'var(--ink-3)' }}>
+              {profile?.sex} · {profile?.age}y · {profile?.heightCm}cm · {profile?.weightKg}kg
+            </div>
+          </div>
+          <button className="hb-btn hb-btn-ghost" style={{ minHeight: 36, padding: '0 14px' }}>Edit</button>
+        </div>
+      </div>
+
+      <div className="hb-card mt-3">
+        <div className="eyebrow mb-3">About the math</div>
+        <Row k="Formula" v="Widmark + food absorption" />
+        <Row k="β typical" v="0.15 g/L per hour" />
+        <Row k="r (male/female)" v="0.68 / 0.55" />
+        <Row k="Standard drink" v="10g ethanol (AU)" />
+      </div>
+
+      <div className="hb-card mt-3">
+        <div className="eyebrow mb-3">Data</div>
+        <Row k="Storage" v="this device only" />
+        <Row k="Accounts" v="none, ever" />
+        <Row k="Network" v="none" />
+        <button
+          onClick={() => { if (confirm('Nuke everything?')) HB.actions.resetAll(); }}
+          className="hb-btn hb-btn-ghost w-full mt-3"
+          style={{ color: 'var(--red)', borderColor: 'rgba(217,106,106,0.4)' }}>
+          Reset all data
+        </button>
+      </div>
+
+      <div className="hb-card-inset mt-3">
+        <div className="eyebrow">The disclaimer, again</div>
+        <div style={{ color: 'var(--ink-2)', fontSize: 13, marginTop: 6, lineHeight: 1.5 }}>
+          Estimates only. Not a breathalyzer. The only safe BAC for driving is 0.00. If someone needs a ride, call them a ride.
+        </div>
+      </div>
+
+      <div className="mono mt-6" style={{ textAlign: 'center', fontSize: 10, color: 'var(--ink-3)', letterSpacing: '0.2em' }}>
+        HANGOVER BUDDY · DIN 2026.4
+      </div>
+    </div>
+  );
+}
+
+function Row({ k, v }) {
+  return (
+    <div className="flex items-center justify-between" style={{ padding: '8px 0', borderTop: '1px solid var(--line)' }}>
+      <div style={{ color: 'var(--ink-2)', fontSize: 13 }}>{k}</div>
+      <div className="mono" style={{ fontSize: 12, color: 'var(--ink)' }}>{v}</div>
+    </div>
+  );
+}
+
+window.HBPages = { HistoryPage, MorningRecap, SettingsPage };
+
+</script>
+
+<script type="text/babel">
+const { useState, useEffect } = React;
+
+const TWEAK_DEFAULTS = /*EDITMODE-BEGIN*/{
+  "palette": "paper",
+  "density": "compact",
+  "visual": "curve",
+  "simState": "midnight"
+}/*EDITMODE-END*/;
+
+function App() {
+  const [view, setView] = useState('session');
+  const [tracker, setTracker] = useState(null);   // initialTab or null
+  const [confirmEnd, setConfirmEnd] = useState(false);
+  const [recapId, setRecapId] = useState(null);
+  const [tweaksOpen, setTweaksOpen] = useState(false);
+
+  const profile = HB.useStore(s => s.profile);
+  const active = HB.useStore(s => s.active);
+  const palette = HB.useStore(s => s.palette);
+  const density = HB.useStore(s => s.density);
+  const visual = HB.useStore(s => s.visual);
+  const simState = HB.useStore(s => s.simState);
+
+  // Apply tweaks to body
+  useEffect(() => {
+    document.body.setAttribute('data-palette', palette);
+    document.body.setAttribute('data-density', density);
+  }, [palette, density]);
+
+  // First load: apply defaults if state is fresh
+  useEffect(() => {
+    const s = HB.getState();
+    if (!s.profile) {
+      // seed a demo profile so sim states work instantly
+    }
+    // Apply initial defaults on the first load only
+    if (s.palette === 'dusk' && s.visual === 'curve' && !s.active && !s.profile) {
+      // do nothing, onboarding will show
+    }
+  }, []);
+
+  // Tweaks: sim state changes should rebuild active session
+  const [lastSim, setLastSim] = useState(simState);
+  useEffect(() => {
+    if (lastSim !== simState) {
+      if (simState !== 'real') HB.actions.seedSimState(simState);
+      setLastSim(simState);
+    }
+  }, [simState]);
+
+  // Edit mode hookup
+  useEffect(() => {
+    function handler(e) {
+      if (!e.data || typeof e.data !== 'object') return;
+      if (e.data.type === '__activate_edit_mode') setTweaksOpen(true);
+      if (e.data.type === '__deactivate_edit_mode') setTweaksOpen(false);
+    }
+    window.addEventListener('message', handler);
+    try { window.parent.postMessage({ type: '__edit_mode_available' }, '*'); } catch {}
+    return () => window.removeEventListener('message', handler);
+  }, []);
+
+  // Pending recap check (dev-seeded sessions that ended with a wake time in the past)
+  useEffect(() => {
+    const s = HB.getState();
+    const pending = s.history.find(x => !x.recap && x.endedAt);
+    if (pending && !recapId) {
+      // offer it passively — only show if user taps
+    }
+  }, []);
+
+  function handleEndConfirm() {
+    const s = HB.getState();
+    if (!s.active) return;
+    const peak = BAC.peakBacInWindow(s.profile, s.active.drinks, s.active.food, s.active.startedAt, Date.now());
+    const wakeAt = s.active.wakeAtMs;
+    const bacWake = wakeAt ? BAC.computeBacAt({ profile: s.profile, drinks: s.active.drinks, food: s.active.food, at: wakeAt }) : 0;
+    const waterDef = BAC.waterDeficit(s.active.drinks, s.active.water.length);
+    const hRisk = BAC.hangoverRiskFor(peak, bacWake, waterDef);
+    const id = HB.actions.endSession({ peakBac: peak, predictedRisk: hRisk });
+    setConfirmEnd(false);
+    if (id) {
+      // Fake-fast-forward to the morning: offer the recap immediately
+      setTimeout(() => setRecapId(id), 300);
+    }
+  }
+
+  let content;
+  if (!profile) content = <HBOther.Onboarding />;
+  else if (view === 'session') content = <HBSession.SessionPage onOpenTracker={setTracker} onOpenEnd={() => setConfirmEnd(true)} />;
+  else if (view === 'history') content = <HBPages.HistoryPage onOpenRecap={setRecapId} />;
+  else if (view === 'settings') content = <HBPages.SettingsPage />;
+
+  return (
+    <div style={{ position: 'relative' }}>
+      <IOSDevice width={402} height={874} dark={palette !== 'paper'}>
+        <div className="hb-app">
+          {content}
+          {profile && (
+            <nav className="hb-nav">
+              <NavItem icon="session" active={view==='session'} onClick={() => setView('session')} label="Session" />
+              <NavItem icon="history" active={view==='history'} onClick={() => setView('history')} label="History" />
+              <NavItem icon="settings" active={view==='settings'} onClick={() => setView('settings')} label="Settings" />
+            </nav>
+          )}
+          <HBOther.TrackerSheet open={tracker !== null} initialTab={tracker} onClose={() => setTracker(null)} />
+          <HBOther.ConfirmEndSheet open={confirmEnd} onClose={() => setConfirmEnd(false)} onConfirm={handleEndConfirm} active={active} now={Date.now()} />
+          {recapId && <HBPages.MorningRecap sessionId={recapId} onDismiss={() => setRecapId(null)} />}
+        </div>
+      </IOSDevice>
+
+      {tweaksOpen && <TweaksPanel onClose={() => setTweaksOpen(false)} />}
+    </div>
+  );
+}
+
+function NavItem({ icon, active, onClick, label }) {
+  const ICONS = {
+    session: <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6"><path d="M7 7h10l-1 13H8L7 7zM7 7V5h10v2M17 9h2a2 2 0 012 2v4a2 2 0 01-2 2h-2"/></svg>,
+    history: <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg>,
+    settings: <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 00.3 1.8l.1.1a2 2 0 01-2.8 2.8l-.1-.1a1.7 1.7 0 00-1.8-.3 1.7 1.7 0 00-1 1.5V21a2 2 0 01-4 0v-.1a1.7 1.7 0 00-1.1-1.5 1.7 1.7 0 00-1.8.3l-.1.1a2 2 0 01-2.8-2.8l.1-.1a1.7 1.7 0 00.3-1.8 1.7 1.7 0 00-1.5-1H3a2 2 0 010-4h.1a1.7 1.7 0 001.5-1.1 1.7 1.7 0 00-.3-1.8L4.2 7A2 2 0 017 4.2l.1.1a1.7 1.7 0 001.8.3H9a1.7 1.7 0 001-1.5V3a2 2 0 014 0v.1a1.7 1.7 0 001 1.5 1.7 1.7 0 001.8-.3l.1-.1a2 2 0 012.8 2.8l-.1.1a1.7 1.7 0 00-.3 1.8V9a1.7 1.7 0 001.5 1H21a2 2 0 010 4h-.1a1.7 1.7 0 00-1.5 1z"/></svg>,
+  };
+  return (
+    <button className={`hb-nav-item ${active ? 'active' : ''}`} onClick={onClick}>
+      {ICONS[icon]}
+      <span>{label}</span>
+    </button>
+  );
+}
+
+function TweaksPanel({ onClose }) {
+  const { palette, density, visual, simState } = HB.useStore();
+  function persist(patch) {
+    try { window.parent.postMessage({ type: '__edit_mode_set_keys', edits: patch }, '*'); } catch {}
+  }
+  return (
+    <div className="hb-tweaks">
+      <h3>Tweaks</h3>
+      <p className="hint">Flip the visual language, try simulated states.</p>
+
+      <div className="group">
+        <div className="label">BAC visualization</div>
+        <div className="opts">
+          {[['curve','Night curve'],['orb','Liquid orb'],['ring','Tick ring'],['numeric','Numeric']].map(([k,l]) => (
+            <button key={k} className={visual===k?'active':''} onClick={() => { HB.actions.setVisual(k); persist({ visual: k }); }}>{l}</button>
+          ))}
+        </div>
+      </div>
+
+      <div className="group">
+        <div className="label">Palette</div>
+        <div className="opts">
+          {[['dusk','Dusk (dark amber)'],['neon','Neon noir'],['paper','Paper (light)']].map(([k,l]) => (
+            <button key={k} className={palette===k?'active':''} onClick={() => { HB.actions.setPalette(k); persist({ palette: k }); }}>{l}</button>
+          ))}
+        </div>
+      </div>
+
+      <div className="group">
+        <div className="label">Density</div>
+        <div className="opts">
+          {[['compact','Compact'],['comfortable','Comfortable'],['cozy','Cozy']].map(([k,l]) => (
+            <button key={k} className={density===k?'active':''} onClick={() => { HB.actions.setDensity(k); persist({ density: k }); }}>{l}</button>
+          ))}
+        </div>
+      </div>
+
+      <div className="group">
+        <div className="label">Simulated session</div>
+        <div className="opts full">
+          {[
+            ['real','Real session (what I have logged)'],
+            ['dry','Just started · no drinks yet'],
+            ['midnight','Mid-night · 4 drinks · green-yellow'],
+            ['overlimit','Rough · 6 drinks · over the line'],
+          ].map(([k,l]) => (
+            <button key={k} className={simState===k?'active':''} onClick={() => { HB.actions.setSimState(k); persist({ simState: k }); if (k !== 'real') HB.actions.seedSimState(k); }}>{l}</button>
+          ))}
+        </div>
+        <p className="hint" style={{ marginTop: 6 }}>Swapping a sim state replaces the current active session.</p>
+      </div>
+
+      <div className="group">
+        <div className="label">Danger zone</div>
+        <div className="opts full">
+          <button onClick={() => { if (confirm('Wipe local data?')) HB.actions.resetAll(); }}>Reset all data</button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+ReactDOM.createRoot(document.getElementById('root')).render(
+  <div className="world"><App /></div>
+);
+
+// Apply initial tweak defaults on first visit
+(function init(){
+  const s = HB.getState();
+  if (s.palette !== TWEAK_DEFAULTS.palette) HB.actions.setPalette(TWEAK_DEFAULTS.palette);
+  if (s.density !== TWEAK_DEFAULTS.density) HB.actions.setDensity(TWEAK_DEFAULTS.density);
+  if (s.visual !== TWEAK_DEFAULTS.visual) HB.actions.setVisual(TWEAK_DEFAULTS.visual);
+  // Seed an example profile + midnight state for first view
+  if (!s.profile) {
+    HB.actions.setProfile({ name: 'Sam', sex: 'male', heightCm: 180, weightKg: 78, age: 30, acceptedDisclaimerAt: Date.now() });
+  }
+  if (!HB.getState().active && TWEAK_DEFAULTS.simState !== 'real') {
+    HB.actions.seedSimState(TWEAK_DEFAULTS.simState);
+    HB.actions.setSimState(TWEAK_DEFAULTS.simState);
+  }
+})();
+</script>
+</body>
+</html>
