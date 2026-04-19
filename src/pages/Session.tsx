@@ -5,7 +5,6 @@ import { WaterAlert } from '@/components/WaterAlert';
 import { CutoffBanner } from '@/components/CutoffBanner';
 import { HangoverCard } from '@/components/HangoverCard';
 import { SessionMeta } from '@/components/SessionMeta';
-import { FAB } from '@/components/FAB';
 import { NightCurve } from '@/components/NightCurve';
 import { AnimatedNumber } from '@/components/AnimatedNumber';
 import { TrackerSheet, type TrackerTab } from '@/components/TrackerSheet';
@@ -29,10 +28,9 @@ import {
   waterDeficit,
 } from '@/lib/bac';
 import { formatClockWithDay } from '@/lib/time';
-import type { RiskLevel } from '@/types';
-import { motion } from 'framer-motion';
-import { Car, MoreHorizontal, Moon } from 'lucide-react';
-import { cn } from '@/lib/utils';
+import type { DrinkEntry, FoodEntry, RiskLevel, WaterEntry } from '@/types';
+import { motion, AnimatePresence } from 'framer-motion';
+import { Car, Moon } from 'lucide-react';
 
 const RISK_COLOR: Record<RiskLevel, string> = {
   green: '#3A5E4C',
@@ -170,7 +168,7 @@ export function SessionPage() {
             Hi, <span className="italic text-accent">{firstName}.</span>
           </h1>
         </div>
-        <DrivingChip value={planToDrive} onChange={setPlanToDrive} />
+        <TinyMenu planToDrive={planToDrive} onTogglePlan={() => setPlanToDrive(!planToDrive)} />
       </header>
 
       {/* BAC hero */}
@@ -320,6 +318,18 @@ export function SessionPage() {
         />
       </div>
 
+      <QuickAddRow onOpen={openTracker} />
+
+      <LogList
+        profile={profile}
+        drinks={active.drinks}
+        water={active.water}
+        food={active.food}
+        onRemoveDrink={removeDrink}
+        onRemoveWater={removeWater}
+        onRemoveFood={removeFood}
+      />
+
       <button
         type="button"
         onClick={() => setConfirmEnd(true)}
@@ -330,8 +340,6 @@ export function SessionPage() {
       <p className="font-mono text-[10px] text-ink-dim text-center -mt-1">
         estimates only. not a breathalyzer.
       </p>
-
-      <FAB onClick={() => openTracker('drink')} pulse={behind} />
 
       <TrackerSheet
         open={trackerTab !== null}
@@ -378,32 +386,230 @@ export function SessionPage() {
   );
 }
 
-function DrivingChip({
-  value,
-  onChange,
+function TinyMenu({
+  planToDrive,
+  onTogglePlan,
 }: {
-  value: boolean;
-  onChange: (v: boolean) => void;
+  planToDrive: boolean;
+  onTogglePlan: () => void;
 }) {
+  const [open, setOpen] = useState(false);
   return (
-    <button
-      type="button"
-      onClick={() => onChange(!value)}
-      aria-pressed={value}
-      className={cn(
-        'shrink-0 h-10 w-10 rounded-2xl inline-flex items-center justify-center border transition relative',
-        value
-          ? 'bg-risk-red text-white border-risk-red shadow-press'
-          : 'bg-bg-card text-ink-muted border-line hover:bg-bg-elev',
-      )}
-      aria-label={value ? 'Driving tonight' : 'Not driving'}
-    >
-      {value ? (
-        <Car className="h-4 w-4" />
-      ) : (
-        <MoreHorizontal className="h-4 w-4" />
-      )}
-    </button>
+    <div className="relative shrink-0">
+      <button
+        type="button"
+        onClick={() => setOpen((v) => !v)}
+        aria-label="menu"
+        aria-expanded={open}
+        className="relative h-[42px] w-[42px] rounded-[14px] border border-line bg-bg-card flex items-center justify-center text-ink hover:bg-bg-elev transition"
+      >
+        <svg
+          width="16"
+          height="16"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          strokeWidth="1.6"
+          strokeLinecap="round"
+        >
+          <circle cx="5" cy="12" r="1" />
+          <circle cx="12" cy="12" r="1" />
+          <circle cx="19" cy="12" r="1" />
+        </svg>
+        {planToDrive && (
+          <span
+            className="absolute -top-1 -right-1 h-2.5 w-2.5 rounded-full bg-risk-red"
+            style={{ border: '2px solid #F4EFE4' }}
+          />
+        )}
+      </button>
+      <AnimatePresence>
+        {open && (
+          <>
+            <button
+              type="button"
+              aria-hidden
+              onClick={() => setOpen(false)}
+              className="fixed inset-0 z-30 cursor-default"
+              tabIndex={-1}
+            />
+            <motion.div
+              initial={{ opacity: 0, y: -4 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -4 }}
+              transition={{ duration: 0.15 }}
+              className="absolute right-0 top-[calc(100%+8px)] z-40 min-w-[200px] rounded-2xl border border-line bg-bg-card shadow-card-lg p-1.5"
+            >
+              <button
+                type="button"
+                onClick={() => {
+                  onTogglePlan();
+                  setOpen(false);
+                }}
+                className="w-full flex items-center justify-between gap-3 px-3 py-2.5 rounded-xl text-left hover:bg-bg-elev transition"
+              >
+                <span className="flex items-center gap-2 text-sm text-ink">
+                  {planToDrive ? (
+                    <Car className="h-4 w-4" />
+                  ) : (
+                    <Moon className="h-4 w-4" />
+                  )}
+                  Plan to drive
+                </span>
+                <span
+                  className={`font-mono text-[10px] uppercase tracking-wider ${
+                    planToDrive ? 'text-risk-red' : 'text-ink-dim'
+                  }`}
+                >
+                  {planToDrive ? 'ON' : 'OFF'}
+                </span>
+              </button>
+            </motion.div>
+          </>
+        )}
+      </AnimatePresence>
+    </div>
+  );
+}
+
+function QuickAddRow({ onOpen }: { onOpen: (tab: TrackerTab) => void }) {
+  const items: { tab: TrackerTab; label: string }[] = [
+    { tab: 'drink', label: '+ Drink' },
+    { tab: 'water', label: '+ Water' },
+    { tab: 'food', label: '+ Food' },
+  ];
+  return (
+    <div className="mt-4 grid grid-cols-3 gap-2">
+      {items.map((it) => (
+        <button
+          key={it.tab}
+          type="button"
+          onClick={() => onOpen(it.tab)}
+          className="h-11 rounded-full border border-line-2 bg-bg-card text-ink font-display text-[15px] italic hover:bg-bg-elev active:scale-[0.98] transition min-tap"
+        >
+          {it.label}
+        </button>
+      ))}
+    </div>
+  );
+}
+
+type LogRow =
+  | { kind: 'drink'; id: string; at: number; label: string; delta: number }
+  | { kind: 'water'; id: string; at: number }
+  | { kind: 'food'; id: string; at: number; size: string };
+
+function LogList({
+  profile,
+  drinks,
+  water,
+  food,
+  onRemoveDrink,
+  onRemoveWater,
+  onRemoveFood,
+}: {
+  profile: { weightKg: number; sex: 'male' | 'female' };
+  drinks: DrinkEntry[];
+  water: WaterEntry[];
+  food: FoodEntry[];
+  onRemoveDrink: (id: string) => void;
+  onRemoveWater: (id: string) => void;
+  onRemoveFood: (id: string) => void;
+}) {
+  const r = profile.sex === 'male' ? 0.68 : 0.55;
+  const [openId, setOpenId] = useState<string | null>(null);
+
+  const rows: LogRow[] = [
+    ...drinks.map<LogRow>((d) => ({
+      kind: 'drink',
+      id: d.id,
+      at: d.at,
+      label: d.label,
+      delta: d.standardDrinks / (profile.weightKg * r),
+    })),
+    ...water.map<LogRow>((w) => ({ kind: 'water', id: w.id, at: w.at })),
+    ...food.map<LogRow>((f) => ({
+      kind: 'food',
+      id: f.id,
+      at: f.at,
+      size: f.size,
+    })),
+  ]
+    .sort((a, b) => b.at - a.at)
+    .slice(0, 3);
+
+  if (rows.length === 0) return null;
+
+  const fmt = (ms: number) => {
+    const d = new Date(ms);
+    return `${d.getHours().toString().padStart(2, '0')}:${d
+      .getMinutes()
+      .toString()
+      .padStart(2, '0')}`;
+  };
+
+  return (
+    <div className="mt-5">
+      <div className="eyebrow mb-2">LOG · LAST {rows.length}</div>
+      <div className="rounded-[20px] bg-bg-card border border-line overflow-hidden">
+        {rows.map((row, i) => {
+          const isOpen = openId === row.id;
+          return (
+            <div key={row.id} className={i > 0 ? 'border-t border-line' : ''}>
+              <button
+                type="button"
+                onClick={() => setOpenId(isOpen ? null : row.id)}
+                className="w-full flex items-center gap-3 px-4 py-3 text-left hover:bg-bg-elev transition"
+              >
+                <span className="font-mono text-[11px] text-ink-dim w-10 shrink-0">
+                  {fmt(row.at)}
+                </span>
+                <span className="text-[14px] text-ink flex-1 truncate">
+                  {row.kind === 'drink'
+                    ? row.label
+                    : row.kind === 'water'
+                      ? 'Water'
+                      : `Food · ${row.size}`}
+                </span>
+                <span className="font-mono text-[11px] text-ink-dim tabular-nums shrink-0">
+                  {row.kind === 'drink'
+                    ? `+${row.delta.toFixed(3)}`
+                    : row.kind === 'water'
+                      ? '−'
+                      : '·'}
+                </span>
+              </button>
+              <AnimatePresence>
+                {isOpen && (
+                  <motion.div
+                    initial={{ height: 0, opacity: 0 }}
+                    animate={{ height: 'auto', opacity: 1 }}
+                    exit={{ height: 0, opacity: 0 }}
+                    transition={{ duration: 0.18 }}
+                    className="overflow-hidden"
+                  >
+                    <div className="flex items-center justify-end gap-2 px-4 pb-3">
+                      <button
+                        type="button"
+                        onClick={() => {
+                          if (row.kind === 'drink') onRemoveDrink(row.id);
+                          else if (row.kind === 'water') onRemoveWater(row.id);
+                          else onRemoveFood(row.id);
+                          setOpenId(null);
+                        }}
+                        className="font-mono text-[10px] uppercase tracking-wider text-risk-red hover:underline"
+                      >
+                        Remove
+                      </button>
+                    </div>
+                  </motion.div>
+                )}
+              </AnimatePresence>
+            </div>
+          );
+        })}
+      </div>
+    </div>
   );
 }
 
