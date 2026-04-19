@@ -1,4 +1,3 @@
-import { Sheet } from '@/components/ui/Sheet';
 import { Droplet, Minus, Plus } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { cn } from '@/lib/utils';
@@ -6,8 +5,6 @@ import type { WaterEntry } from '@/types';
 import { formatRelative } from '@/lib/time';
 
 type Props = {
-  open: boolean;
-  onClose: () => void;
   glasses: number;
   drinks: number;
   behind: boolean;
@@ -17,9 +14,7 @@ type Props = {
   onRemove: (id: string) => void;
 };
 
-export function WaterSheet({
-  open,
-  onClose,
+export function WaterPanel({
   glasses,
   drinks,
   behind,
@@ -32,10 +27,10 @@ export function WaterSheet({
   const pct = Math.min(1, glasses / target);
 
   return (
-    <Sheet open={open} onClose={onClose} title="Water">
+    <div>
       <div className="text-center pt-2 pb-4">
-        <div className="mx-auto h-20 w-20 rounded-2xl bg-sky-100 flex items-center justify-center mb-3">
-          <Droplet className="h-10 w-10 text-sky-600" />
+        <div className="mx-auto h-16 w-16 rounded-2xl bg-sky-100 flex items-center justify-center mb-3">
+          <Droplet className="h-8 w-8 text-sky-600" />
         </div>
         <div className="text-5xl font-bold text-ink tabular-nums tracking-tight">
           {glasses}
@@ -44,7 +39,7 @@ export function WaterSheet({
         <div
           className={cn(
             'text-sm font-semibold mt-1',
-            behind ? 'text-risk-yellow' : 'text-ink-muted'
+            behind ? 'text-risk-yellow' : 'text-ink-muted',
           )}
         >
           {behind
@@ -58,7 +53,7 @@ export function WaterSheet({
           <motion.div
             className={cn(
               'absolute inset-y-0 left-0 rounded-full',
-              behind ? 'bg-risk-yellow' : 'bg-sky-500'
+              behind ? 'bg-risk-yellow' : 'bg-sky-500',
             )}
             initial={false}
             animate={{ width: `${pct * 100}%` }}
@@ -84,7 +79,7 @@ export function WaterSheet({
             onClick={onAdd}
             className={cn(
               'h-20 w-20 rounded-full flex items-center justify-center text-white shadow-[0_10px_24px_-8px_rgba(14,165,233,0.55),0_2px_6px_rgba(26,21,18,0.08)] bg-sky-500 hover:bg-sky-600 active:bg-sky-700 transition',
-              behind && 'animate-breathe'
+              behind && 'animate-breathe',
             )}
             aria-label="Add one glass"
           >
@@ -106,9 +101,7 @@ export function WaterSheet({
                   key={w.id}
                   className="flex items-center justify-between py-2 border-b border-line last:border-0"
                 >
-                  <span className="text-sm text-ink">
-                    Glass of water
-                  </span>
+                  <span className="text-sm text-ink">Glass of water</span>
                   <span className="text-xs text-ink-muted tabular-nums">
                     {formatRelative(w.at, now)}
                   </span>
@@ -117,6 +110,6 @@ export function WaterSheet({
           </ul>
         </div>
       )}
-    </Sheet>
+    </div>
   );
 }

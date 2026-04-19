@@ -3,14 +3,12 @@ import { Card } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
 import { BACGauge } from '@/components/BACGauge';
 import { WaterAlert } from '@/components/WaterAlert';
-import { SessionTimer } from '@/components/SessionTimer';
 import { CutoffBanner } from '@/components/CutoffBanner';
-import { WakeTimePicker } from '@/components/WakeTimePicker';
 import { HangoverCard } from '@/components/HangoverCard';
-import { ActionTile } from '@/components/ActionTile';
-import { DrinkSheet } from '@/components/sheets/DrinkSheet';
-import { WaterSheet } from '@/components/sheets/WaterSheet';
-import { FoodSheet } from '@/components/sheets/FoodSheet';
+import { SessionMeta } from '@/components/SessionMeta';
+import { FAB } from '@/components/FAB';
+import { TrackerSheet, type TrackerTab } from '@/components/TrackerSheet';
+import { ConfirmEndSheet } from '@/components/ConfirmEndSheet';
 import { useProfile } from '@/store/useProfile';
 import { useSession } from '@/store/useSession';
 import {
@@ -28,9 +26,10 @@ import {
   waterBehind,
   waterDeficit,
 } from '@/lib/bac';
-import { formatClockWithDay, formatRelative } from '@/lib/time';
+import { formatClockWithDay } from '@/lib/time';
 import { motion } from 'framer-motion';
-import { Beer, Car, Cookie, Droplet, Moon, UtensilsCrossed } from 'lucide-react';
+import { Car, Moon } from 'lucide-react';
+import { cn } from '@/lib/utils';
 
 export function SessionPage() {
   const profile = useProfile((s) => s.profile)!;
@@ -49,7 +48,8 @@ export function SessionPage() {
   const setWakeAt = useSession((s) => s.setWakeAt);
   const setPlanToDrive = useSession((s) => s.setPlanToDrive);
 
-  const [sheet, setSheet] = useState<'drink' | 'water' | 'food' | null>(null);
+  const [trackerTab, setTrackerTab] = useState<TrackerTab | null>(null);
+  const [confirmEnd, setConfirmEnd] = useState(false);
 
   useEffect(() => {
     if (!active) return;
@@ -88,7 +88,7 @@ export function SessionPage() {
   const bacAtWake = wakeAtMs
     ? computeBacAt(
         { profile, drinks: active.drinks, food: active.food, at: wakeAtMs },
-        BETA_TYPICAL
+        BETA_TYPICAL,
       )
     : 0;
   const sessionPeak = peakBacInWindow(
@@ -96,7 +96,7 @@ export function SessionPage() {
     active.drinks,
     active.food,
     active.startedAt,
-    Math.max(sessionEndsAt, wakeAtMs ?? sessionEndsAt)
+    Math.max(sessionEndsAt, wakeAtMs ?? sessionEndsAt),
   );
   const hRisk = hangoverRiskFor(sessionPeak, bacAtWake, deficit);
   const hangoverDrinksLeft = wakeAtMs
@@ -104,45 +104,25 @@ export function SessionPage() {
     : null;
   const legalDrinksLeft = suggestedDrinksRemaining(inputs, sessionEndsAt, 1.4, 0.045);
 
-  const drinkTotal = active.drinks.reduce((s, d) => s + d.standardDrinks, 0);
-  const drinkCaption =
-    active.drinks.length === 0
-      ? 'Tap to log your first'
-      : `${drinkTotal.toFixed(1)} std · last ${formatRelative(
-          active.drinks[active.drinks.length - 1].at,
-          now
-        )}`;
-
-  const waterTarget = Math.max(active.drinks.length, 1);
-  const waterCaption = behind
-    ? `${deficit} ${deficit === 1 ? 'glass' : 'glasses'} behind — drink up`
-    : active.drinks.length === 0
-      ? 'Log a glass anytime'
-      : `${active.water.length}/${waterTarget} — good pace`;
-
-  const lastFood = active.food[active.food.length - 1];
-  const foodCaption = lastFood
-    ? `Last ${lastFood.size} · ${formatRelative(lastFood.at, now)}`
-    : 'No food logged yet';
+  const openTracker = (tab: TrackerTab) => setTrackerTab(tab);
+  const closeTracker = () => setTrackerTab(null);
 
   return (
-    <div className="max-w-md mx-auto p-4 pb-28">
-      <header className="mt-6 mb-4 flex items-baseline justify-between">
-        <h1 className="text-2xl font-bold text-ink tracking-tight">Hi, {profile.name}</h1>
-        <span className="text-[11px] text-ink-dim font-medium">Estimates only</span>
+    <div className="max-w-md mx-auto p-4 pb-32">
+      <header className="mt-6 mb-4 flex items-center justify-between gap-3">
+        <h1 className="text-2xl font-bold text-ink tracking-tight truncate">
+          Hi, {profile.name}
+        </h1>
+        <DrivingChip value={planToDrive} onChange={setPlanToDrive} />
       </header>
 
       {behind && (
         <div className="mb-3">
-          <WaterAlert deficit={deficit} onAdd={() => setSheet('water')} />
+          <WaterAlert deficit={deficit} onAdd={() => openTracker('water')} />
         </div>
       )}
 
-      <DrivingToggle value={planToDrive} onChange={setPlanToDrive} />
-
-      <div className="mt-3">
-        <BACGauge range={range} risk={risk} />
-      </div>
+      <BACGauge range={range} risk={risk} />
 
       <div className="grid grid-cols-2 gap-2 mt-3">
         {planToDrive ? (
@@ -202,109 +182,76 @@ export function SessionPage() {
         </div>
       )}
 
-      <div className="mt-5 mb-2 flex items-baseline justify-between">
-        <h2 className="text-[11px] font-bold uppercase tracking-wider text-ink-muted">
-          Track
-        </h2>
-      </div>
-      <div className="space-y-2">
-        <ActionTile
-          tone="coral"
-          icon={Beer}
-          label="Drink"
-          count={active.drinks.length}
-          caption={drinkCaption}
-          onClick={() => setSheet('drink')}
-        />
-        <ActionTile
-          tone="sky"
-          icon={Droplet}
-          label="Water"
-          count={active.water.length}
-          caption={waterCaption}
-          alert={behind}
-          onClick={() => setSheet('water')}
-        />
-        <ActionTile
-          tone="amber"
-          icon={lastFood?.size === 'meal' ? UtensilsCrossed : Cookie}
-          label="Food"
-          count={active.food.length}
-          caption={foodCaption}
-          onClick={() => setSheet('food')}
-        />
-      </div>
-
-      <div className="mt-5 mb-2 flex items-baseline justify-between">
-        <h2 className="text-[11px] font-bold uppercase tracking-wider text-ink-muted">
-          Session
-        </h2>
-      </div>
-      <div className="space-y-3">
-        <WakeTimePicker wakeAtMs={wakeAtMs} now={now} onChange={setWakeAt} />
-        <SessionTimer
+      <div className="mt-4">
+        <SessionMeta
           startedAt={active.startedAt}
           expectedHours={active.expectedHours}
+          wakeAtMs={wakeAtMs}
           now={now}
           onChangeHours={setExpectedHours}
+          onChangeWake={setWakeAt}
         />
       </div>
 
-      <Button
-        variant="secondary"
-        size="lg"
-        className="w-full mt-6"
-        onClick={() => {
-          if (confirm('End session and save to history?')) {
-            const peak = peakBacInWindow(
-              profile,
-              active.drinks,
-              active.food,
-              active.startedAt,
-              Date.now()
-            );
-            endSession(peak, hRisk);
-          }
-        }}
+      <button
+        type="button"
+        onClick={() => setConfirmEnd(true)}
+        className="w-full mt-5 h-11 text-sm font-semibold text-ink-muted hover:text-ink transition"
       >
         End session
-      </Button>
-      <p className="text-xs text-ink-dim text-center mt-3">
+      </button>
+      <p className="text-[11px] text-ink-dim text-center mt-1">
         Estimates only — never drive after drinking.
       </p>
 
-      <DrinkSheet
-        open={sheet === 'drink'}
-        onClose={() => setSheet(null)}
+      <FAB onClick={() => openTracker('drink')} pulse={behind} />
+
+      <TrackerSheet
+        open={trackerTab !== null}
+        initialTab={trackerTab ?? 'drink'}
+        onClose={closeTracker}
         drinks={active.drinks}
-        now={now}
-        onAdd={addDrink}
-        onRemove={removeDrink}
-      />
-      <WaterSheet
-        open={sheet === 'water'}
-        onClose={() => setSheet(null)}
-        glasses={active.water.length}
-        drinks={active.drinks.length}
-        behind={behind}
         water={active.water}
+        food={active.food}
+        behind={behind}
         now={now}
-        onAdd={addWater}
-        onRemove={removeWater}
+        onAddDrink={addDrink}
+        onRemoveDrink={removeDrink}
+        onAddWater={addWater}
+        onRemoveWater={removeWater}
+        onAddFood={addFood}
+        onRemoveFood={removeFood}
       />
-      <FoodSheet
-        open={sheet === 'food'}
-        onClose={() => setSheet(null)}
-        entries={active.food}
-        now={now}
-        onAdd={addFood}
-        onRemove={removeFood}
+
+      <ConfirmEndSheet
+        open={confirmEnd}
+        onClose={() => setConfirmEnd(false)}
+        duration={Math.max(0, now - active.startedAt)}
+        drinks={active.drinks.length}
+        peak={peakBacInWindow(
+          profile,
+          active.drinks,
+          active.food,
+          active.startedAt,
+          Date.now(),
+        )}
+        onConfirm={() => {
+          const peak = peakBacInWindow(
+            profile,
+            active.drinks,
+            active.food,
+            active.startedAt,
+            Date.now(),
+          );
+          setConfirmEnd(false);
+          endSession(peak, hRisk);
+        }}
       />
     </div>
   );
 }
 
-function DrivingToggle({
+function DrivingChip({
   value,
   onChange,
 }: {
@@ -312,26 +259,20 @@ function DrivingToggle({
   onChange: (v: boolean) => void;
 }) {
   return (
-    <div className="relative bg-bg-elev rounded-2xl p-1 flex border border-line">
-      <button
-        type="button"
-        onClick={() => onChange(false)}
-        className={`flex-1 min-tap h-11 rounded-xl flex items-center justify-center gap-2 text-sm font-semibold transition-all ${
-          !value ? 'bg-bg-card text-ink shadow-press' : 'text-ink-muted'
-        }`}
-      >
-        <Moon className="h-4 w-4" /> Not driving
-      </button>
-      <button
-        type="button"
-        onClick={() => onChange(true)}
-        className={`flex-1 min-tap h-11 rounded-xl flex items-center justify-center gap-2 text-sm font-semibold transition-all ${
-          value ? 'bg-risk-red text-white shadow-press' : 'text-ink-muted'
-        }`}
-      >
-        <Car className="h-4 w-4" /> I plan on driving
-      </button>
-    </div>
+    <button
+      type="button"
+      onClick={() => onChange(!value)}
+      aria-pressed={value}
+      className={cn(
+        'h-9 px-3 rounded-full inline-flex items-center gap-1.5 text-xs font-bold tracking-tight border transition min-tap',
+        value
+          ? 'bg-risk-red text-white border-risk-red shadow-press'
+          : 'bg-bg-elev text-ink-muted border-line hover:bg-bg-card',
+      )}
+    >
+      {value ? <Car className="h-3.5 w-3.5" /> : <Moon className="h-3.5 w-3.5" />}
+      {value ? 'Driving' : 'Not driving'}
+    </button>
   );
 }
 
@@ -369,7 +310,7 @@ function StartSession({
     d.setHours(8, 0, 0, 0);
     const pad = (n: number) => String(n).padStart(2, '0');
     return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(
-      d.getHours()
+      d.getHours(),
     )}:${pad(d.getMinutes())}`;
   });
   const [useWake, setUseWake] = useState(true);
