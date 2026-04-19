@@ -1,21 +1,18 @@
-import { Sheet } from '@/components/ui/Sheet';
 import { Cookie, UtensilsCrossed, X } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { formatRelative } from '@/lib/time';
 import type { FoodEntry, FoodSize } from '@/types';
 
 type Props = {
-  open: boolean;
-  onClose: () => void;
   entries: FoodEntry[];
   now: number;
   onAdd: (size: FoodSize) => void;
   onRemove: (id: string) => void;
 };
 
-export function FoodSheet({ open, onClose, entries, now, onAdd, onRemove }: Props) {
+export function FoodPanel({ entries, now, onAdd, onRemove }: Props) {
   return (
-    <Sheet open={open} onClose={onClose} title="Food">
+    <div>
       <div className="grid grid-cols-2 gap-2.5">
         <motion.button
           whileTap={{ scale: 0.96 }}
@@ -76,6 +73,6 @@ export function FoodSheet({ open, onClose, entries, now, onAdd, onRemove }: Prop
           </ul>
         </div>
       )}
-    </Sheet>
+    </div>
   );
 }
