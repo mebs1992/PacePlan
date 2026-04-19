@@ -76,7 +76,7 @@ function BottomNav({ view, onChange }: { view: View; onChange: (v: View) => void
   ];
   return (
     <nav
-      className="fixed bottom-0 left-0 right-0 z-40 bg-bg-card/95 backdrop-blur-sm hairline-t"
+      className="fixed bottom-0 left-0 right-0 z-40 bg-bg/85 backdrop-blur-md hairline-t"
       style={{ paddingBottom: 'env(safe-area-inset-bottom)' }}
     >
       <div className="max-w-md mx-auto flex">
@@ -95,7 +95,7 @@ function BottomNav({ view, onChange }: { view: View; onChange: (v: View) => void
                 {it.icon}
               </div>
               <span
-                className={`text-[11px] font-semibold transition-colors ${
+                className={`font-mono text-[10px] tracking-[0.12em] uppercase transition-colors ${
                   active ? 'text-accent' : 'text-ink-dim'
                 }`}
               >

@@ -1,18 +1,20 @@
 import { useEffect, useMemo, useState } from 'react';
 import { Card } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
-import { BACGauge } from '@/components/BACGauge';
 import { WaterAlert } from '@/components/WaterAlert';
 import { CutoffBanner } from '@/components/CutoffBanner';
 import { HangoverCard } from '@/components/HangoverCard';
 import { SessionMeta } from '@/components/SessionMeta';
 import { FAB } from '@/components/FAB';
+import { NightCurve } from '@/components/NightCurve';
+import { AnimatedNumber } from '@/components/AnimatedNumber';
 import { TrackerSheet, type TrackerTab } from '@/components/TrackerSheet';
 import { ConfirmEndSheet } from '@/components/ConfirmEndSheet';
 import { useProfile } from '@/store/useProfile';
 import { useSession } from '@/store/useSession';
 import {
   BETA_TYPICAL,
+  bacCurve,
   computeBacAt,
   computeBacRange,
   drinksUntilHangover,
@@ -27,9 +29,34 @@ import {
   waterDeficit,
 } from '@/lib/bac';
 import { formatClockWithDay } from '@/lib/time';
+import type { RiskLevel } from '@/types';
 import { motion } from 'framer-motion';
-import { Car, Moon } from 'lucide-react';
+import { Car, MoreHorizontal, Moon } from 'lucide-react';
 import { cn } from '@/lib/utils';
+
+const RISK_COLOR: Record<RiskLevel, string> = {
+  green: '#3A5E4C',
+  yellow: '#B28034',
+  red: '#8C3A2A',
+};
+
+function advisoryFor(
+  risk: RiskLevel,
+  bac: number,
+  hangoverSevere: boolean,
+  planToDrive: boolean,
+): { text: string; color: string } {
+  if (planToDrive && risk === 'red')
+    return { text: 'Do not drive.', color: RISK_COLOR.red };
+  if (planToDrive && risk === 'yellow')
+    return { text: 'Plan a ride.', color: RISK_COLOR.yellow };
+  if (bac <= 0.001) return { text: 'Safe to drive.', color: RISK_COLOR.green };
+  if (hangoverSevere)
+    return { text: 'Rough morning incoming.', color: RISK_COLOR.red };
+  if (risk === 'red') return { text: 'Do not drive.', color: RISK_COLOR.red };
+  if (risk === 'yellow') return { text: 'Ease up.', color: RISK_COLOR.yellow };
+  return { text: 'Pacing well.', color: RISK_COLOR.green };
+}
 
 export function SessionPage() {
   const profile = useProfile((s) => s.profile)!;
@@ -104,66 +131,139 @@ export function SessionPage() {
     : null;
   const legalDrinksLeft = suggestedDrinksRemaining(inputs, sessionEndsAt, 1.4, 0.045);
 
+  const curve = useMemo(
+    () =>
+      bacCurve(
+        profile,
+        active.drinks,
+        active.food,
+        active.startedAt,
+        Math.max(sessionEndsAt, (wakeAtMs ?? 0) + 60_000, now + 60_000),
+        100,
+      ),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [profile, active.drinks, active.food, active.startedAt, sessionEndsAt, wakeAtMs],
+  );
+
+  const advisory = advisoryFor(risk, range.typical, hRisk === 'severe', planToDrive);
+
+  const dateLabel = new Date(active.startedAt)
+    .toLocaleDateString(undefined, {
+      weekday: 'short',
+      month: 'short',
+      day: 'numeric',
+    })
+    .toUpperCase();
+
+  const firstName = profile.name.split(' ')[0] || profile.name;
+
   const openTracker = (tab: TrackerTab) => setTrackerTab(tab);
   const closeTracker = () => setTrackerTab(null);
 
   return (
-    <div className="max-w-md mx-auto p-4 pb-32">
-      <header className="mt-6 mb-4 flex items-center justify-between gap-3">
-        <h1 className="text-2xl font-bold text-ink tracking-tight truncate">
-          Hi, {profile.name}
-        </h1>
+    <div className="max-w-md mx-auto px-5 pt-8 pb-32">
+      {/* Masthead */}
+      <header className="flex items-start justify-between gap-3">
+        <div className="min-w-0">
+          <div className="eyebrow">TONIGHT · {dateLabel}</div>
+          <h1 className="font-display text-[44px] leading-[1.02] tracking-[-0.03em] text-ink mt-1 truncate">
+            Hi, <span className="italic text-accent">{firstName}.</span>
+          </h1>
+        </div>
         <DrivingChip value={planToDrive} onChange={setPlanToDrive} />
       </header>
 
-      {behind && (
-        <div className="mb-3">
-          <WaterAlert deficit={deficit} onAdd={() => openTracker('water')} />
+      {/* BAC hero */}
+      <div className="mt-8">
+        <div className="flex items-baseline gap-2">
+          <div
+            className="font-display tabular-nums text-ink"
+            style={{
+              fontSize: 'clamp(96px, 30vw, 120px)',
+              fontWeight: 300,
+              lineHeight: 0.9,
+              letterSpacing: '-0.04em',
+            }}
+          >
+            <AnimatedNumber value={range.typical} decimals={3} />
+          </div>
+          <div className="eyebrow text-ink-dim mb-3 flex flex-col leading-[1.1]">
+            <span>%</span>
+            <span>BAC</span>
+          </div>
         </div>
-      )}
-
-      <BACGauge range={range} risk={risk} />
-
-      <div className="grid grid-cols-2 gap-2 mt-3">
-        {planToDrive ? (
-          <StatChip
-            label="Drinks left"
-            value={legalDrinksLeft.toString()}
-            sub="under 0.05 BAC"
+        <div className="font-mono text-[11px] text-ink-dim mt-[-4px]">
+          range {range.low.toFixed(3)}–{range.high.toFixed(3)} · β typical
+        </div>
+        <motion.div
+          key={advisory.text}
+          initial={{ opacity: 0, y: 4 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.22 }}
+          className="flex items-center gap-2 mt-4"
+        >
+          <span
+            className="w-1.5 h-1.5 rounded-full"
+            style={{
+              background: advisory.color,
+              boxShadow: `0 0 10px ${advisory.color}`,
+            }}
           />
-        ) : (
-          <StatChip
-            label="Peak tonight"
-            value={`${sessionPeak.toFixed(3)}%`}
-            sub="projected max BAC"
-          />
-        )}
-        <StatChip
-          label="Sober by"
-          value={sober ? formatClockWithDay(sober, now) : '—'}
-          sub="estimated"
+          <span
+            className="font-display italic"
+            style={{ fontSize: 20, color: advisory.color }}
+          >
+            {advisory.text}
+          </span>
+        </motion.div>
+      </div>
+
+      {/* Night curve card */}
+      <div className="mt-5 rounded-[20px] bg-bg-card border border-line shadow-card px-3 pt-4 pb-2">
+        <div className="flex items-center justify-between px-1 mb-1">
+          <div className="eyebrow">NIGHT CURVE</div>
+          <div className="font-mono text-[10px] text-ink-dim">
+            peak · {sessionPeak.toFixed(3)}
+          </div>
+        </div>
+        <NightCurve
+          range={range}
+          risk={risk}
+          curve={curve}
+          now={now}
+          sessionStart={active.startedAt}
+          sessionEnd={sessionEndsAt}
+          wakeAt={wakeAtMs}
+          peak={sessionPeak}
         />
       </div>
 
-      {planToDrive ? (
-        <>
-          {risk === 'red' && (
-            <motion.div
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              className="mt-3 rounded-2xl p-3 bg-rose-50 border border-rose-200 text-sm text-risk-red font-medium"
-            >
-              Estimated BAC exceeds the legal driving limit (0.05). Do not drive.
-              Consider stopping.
-            </motion.div>
-          )}
-          {risk === 'yellow' && (
-            <div className="mt-3 rounded-2xl p-3 bg-amber-50 border border-amber-200 text-sm text-amber-900 font-medium">
-              Approaching the driving limit. Plan a ride home.
-            </div>
-          )}
-        </>
-      ) : (
+      {/* Stat tiles */}
+      <div className="grid grid-cols-2 gap-2.5 mt-3">
+        {planToDrive ? (
+          <StatTile
+            title="UNDER 0.05"
+            big={legalDrinksLeft.toString()}
+            sub={`drink${legalDrinksLeft === 1 ? '' : 's'} left`}
+            flavor="driving cap"
+          />
+        ) : (
+          <StatTile
+            title="PROJECTED PEAK"
+            big={sessionPeak.toFixed(3)}
+            sub="max BAC tonight"
+            flavor="with β 0.15"
+          />
+        )}
+        <StatTile
+          title="SOBER BY"
+          big={sober ? formatClockWithDay(sober, now) : '—'}
+          sub="est. clearance"
+          flavor="0.00% BAC"
+        />
+      </div>
+
+      {!planToDrive && (
         <div className="mt-3">
           <HangoverCard
             risk={hRisk}
@@ -176,13 +276,40 @@ export function SessionPage() {
         </div>
       )}
 
+      {planToDrive && risk !== 'green' && (
+        <motion.div
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          className="mt-3 rounded-[20px] p-4 bg-bg-card border shadow-card"
+          style={{ borderColor: RISK_COLOR.red }}
+        >
+          <div className="eyebrow" style={{ color: RISK_COLOR.red }}>
+            DO NOT DRIVE
+          </div>
+          <div className="font-display text-[20px] leading-tight text-ink mt-1">
+            {risk === 'red'
+              ? 'You are over the 0.05 limit. Get a ride.'
+              : 'Approaching the 0.05 limit. Plan a ride now.'}
+          </div>
+          <div className="font-mono text-[11px] text-ink-dim mt-2">
+            This app is not a breathalyzer. The only safe BAC to drive is 0.00.
+          </div>
+        </motion.div>
+      )}
+
+      {behind && (
+        <div className="mt-3">
+          <WaterAlert deficit={deficit} onAdd={() => openTracker('water')} />
+        </div>
+      )}
+
       {cutoff.kind !== 'no-drinks' && (
         <div className="mt-3">
           <CutoffBanner result={cutoff} now={now} />
         </div>
       )}
 
-      <div className="mt-4">
+      <div className="mt-3">
         <SessionMeta
           startedAt={active.startedAt}
           expectedHours={active.expectedHours}
@@ -196,12 +323,12 @@ export function SessionPage() {
       <button
         type="button"
         onClick={() => setConfirmEnd(true)}
-        className="w-full mt-5 h-11 text-sm font-semibold text-ink-muted hover:text-ink transition"
+        className="w-full mt-6 py-3.5 font-mono text-[11px] tracking-[0.18em] uppercase text-ink-dim hover:text-ink transition"
       >
         End session
       </button>
-      <p className="text-[11px] text-ink-dim text-center mt-1">
-        Estimates only — never drive after drinking.
+      <p className="font-mono text-[10px] text-ink-dim text-center -mt-1">
+        estimates only. not a breathalyzer.
       </p>
 
       <FAB onClick={() => openTracker('drink')} pulse={behind} />
@@ -264,34 +391,41 @@ function DrivingChip({
       onClick={() => onChange(!value)}
       aria-pressed={value}
       className={cn(
-        'h-9 px-3 rounded-full inline-flex items-center gap-1.5 text-xs font-bold tracking-tight border transition min-tap',
+        'shrink-0 h-10 w-10 rounded-2xl inline-flex items-center justify-center border transition relative',
         value
           ? 'bg-risk-red text-white border-risk-red shadow-press'
-          : 'bg-bg-elev text-ink-muted border-line hover:bg-bg-card',
+          : 'bg-bg-card text-ink-muted border-line hover:bg-bg-elev',
       )}
+      aria-label={value ? 'Driving tonight' : 'Not driving'}
     >
-      {value ? <Car className="h-3.5 w-3.5" /> : <Moon className="h-3.5 w-3.5" />}
-      {value ? 'Driving' : 'Not driving'}
+      {value ? (
+        <Car className="h-4 w-4" />
+      ) : (
+        <MoreHorizontal className="h-4 w-4" />
+      )}
     </button>
   );
 }
 
-function StatChip({
-  label,
-  value,
+function StatTile({
+  title,
+  big,
   sub,
+  flavor,
 }: {
-  label: string;
-  value: string;
+  title: string;
+  big: string;
   sub: string;
+  flavor: string;
 }) {
   return (
-    <div className="relative overflow-hidden rounded-2xl p-3 bg-bg-card border border-line shadow-card">
-      <div className="text-[11px] font-semibold text-ink-muted">{label}</div>
-      <div className="text-lg font-bold text-ink mt-1 tabular-nums leading-tight tracking-tight">
-        {value}
+    <div className="rounded-[20px] p-3.5 bg-bg-card border border-line shadow-card">
+      <div className="eyebrow">{title}</div>
+      <div className="font-display tabular-nums text-ink text-[28px] leading-none mt-1.5">
+        {big}
       </div>
-      <div className="text-[11px] text-ink-dim">{sub}</div>
+      <div className="text-[12px] text-ink-muted mt-1">{sub}</div>
+      <div className="font-mono text-[10px] text-ink-dim mt-0.5">{flavor}</div>
     </div>
   );
 }
@@ -321,31 +455,41 @@ function StartSession({
     return Number.isFinite(n) ? n : undefined;
   }, [wakeDraft]);
 
+  const today = new Date()
+    .toLocaleDateString(undefined, {
+      weekday: 'short',
+      month: 'short',
+      day: 'numeric',
+    })
+    .toUpperCase();
+  const firstName = profileName.split(' ')[0] || profileName;
+
   return (
-    <div className="max-w-md mx-auto p-4 pb-28">
+    <div className="max-w-md mx-auto px-5 pt-8 pb-28">
       <motion.header
         initial={{ opacity: 0, y: -6 }}
         animate={{ opacity: 1, y: 0 }}
-        className="mt-10 mb-6"
+        className="mb-8"
       >
-        <h1 className="text-4xl font-bold text-ink tracking-tight">
-          Hey, <span className="sunset-text">{profileName}</span>
+        <div className="eyebrow">TONIGHT · {today}</div>
+        <h1 className="font-display text-[44px] leading-[1.02] tracking-[-0.03em] text-ink mt-1">
+          Hi, <span className="italic text-accent">{firstName}.</span>
         </h1>
-        <p className="text-ink-muted text-[15px] mt-2">
-          How long do you plan to drink tonight? You can adjust later.
+        <p className="font-display italic text-ink-muted text-[18px] mt-3">
+          A quiet companion for loud nights.
         </p>
       </motion.header>
 
       <motion.div
         initial={{ opacity: 0, y: 12 }}
         animate={{ opacity: 1, y: 0 }}
-        transition={{ delay: 0.1 }}
+        transition={{ delay: 0.08 }}
       >
         <Card className="text-center">
-          <div className="text-xs font-semibold text-ink-muted">Expected duration</div>
-          <div className="text-[88px] font-bold text-ink my-3 tabular-nums leading-none tracking-tight">
-            <span className="sunset-text">{hours}</span>
-            <span className="text-3xl text-ink-muted ml-1 font-semibold">h</span>
+          <div className="eyebrow">EXPECTED DURATION</div>
+          <div className="font-display tabular-nums text-ink my-3 leading-none tracking-[-0.03em]" style={{ fontSize: 88, fontWeight: 300 }}>
+            {hours}
+            <span className="font-display text-[32px] text-ink-muted ml-1">h</span>
           </div>
           <input
             type="range"
@@ -356,7 +500,7 @@ function StartSession({
             onChange={(e) => setHours(parseFloat(e.target.value))}
             className="w-full"
           />
-          <div className="flex justify-between text-xs text-ink-dim mt-2 px-1">
+          <div className="flex justify-between font-mono text-[10px] text-ink-dim mt-2 px-1">
             <span>1h</span>
             <span>6h</span>
             <span>12h</span>
@@ -368,7 +512,7 @@ function StartSession({
               <button
                 type="button"
                 onClick={() => setUseWake((v) => !v)}
-                className="text-xs text-accent font-semibold underline-offset-2 hover:underline"
+                className="font-mono text-[11px] text-accent uppercase tracking-wider hover:underline underline-offset-2"
               >
                 {useWake ? "I'll sleep in" : 'Set a time'}
               </button>
@@ -378,10 +522,10 @@ function StartSession({
                 type="datetime-local"
                 value={wakeDraft}
                 onChange={(e) => setWakeDraft(e.target.value)}
-                className="w-full h-11 px-3 mt-2 rounded-xl bg-bg-elev border border-line text-ink focus:border-accent focus:bg-white focus:outline-none focus:ring-4 focus:ring-accent/15"
+                className="w-full h-11 px-3 mt-2 rounded-xl bg-bg-card border border-line text-ink focus:border-accent focus:outline-none focus:ring-4 focus:ring-accent/15"
               />
             ) : (
-              <div className="mt-2 text-ink-dim text-sm">
+              <div className="mt-2 font-display italic text-ink-dim text-sm">
                 Whenever — we'll only track sober time.
               </div>
             )}
@@ -394,25 +538,35 @@ function StartSession({
                 type="button"
                 onClick={() => setDriving(false)}
                 className={`h-11 rounded-xl text-sm font-semibold min-tap transition-all ${
-                  !driving ? 'bg-ink text-white' : 'bg-bg-elev border border-line text-ink-muted'
+                  !driving
+                    ? 'bg-ink text-white'
+                    : 'bg-bg-card border border-line text-ink-muted'
                 }`}
               >
-                No
+                <span className="inline-flex items-center gap-1.5">
+                  <Moon className="h-3.5 w-3.5" />
+                  No
+                </span>
               </button>
               <button
                 type="button"
                 onClick={() => setDriving(true)}
                 className={`h-11 rounded-xl text-sm font-semibold min-tap transition-all ${
-                  driving ? 'bg-risk-red text-white' : 'bg-bg-elev border border-line text-ink-muted'
+                  driving
+                    ? 'bg-risk-red text-white'
+                    : 'bg-bg-card border border-line text-ink-muted'
                 }`}
               >
-                Yes
+                <span className="inline-flex items-center gap-1.5">
+                  <Car className="h-3.5 w-3.5" />
+                  Yes
+                </span>
               </button>
             </div>
           </div>
 
           <Button
-            className="w-full mt-6"
+            className="w-full mt-6 font-display italic text-[20px]"
             size="lg"
             onClick={() =>
               onStart(hours, {
@@ -421,13 +575,13 @@ function StartSession({
               })
             }
           >
-            Start session
+            Start the night
           </Button>
         </Card>
       </motion.div>
 
-      <p className="text-xs text-ink-dim text-center mt-4">
-        Estimates only — never drive after drinking.
+      <p className="font-mono text-[10px] text-ink-dim text-center mt-4 uppercase tracking-wider">
+        Estimates only. Never drive after drinking.
       </p>
     </div>
   );

@@ -336,6 +336,31 @@ export function waterDeficit(drinks: DrinkEntry[], waterCount: number): number {
   return Math.max(0, drinks.length - 1 - waterCount);
 }
 
+export type BacSample = { at: number; bac: number };
+
+/**
+ * Sample BAC at evenly-spaced points between fromMs and toMs. Used by the
+ * Night Curve chart. Cheap for UI purposes because computeBacAt already caches
+ * its own internal loop per-call.
+ */
+export function bacCurve(
+  profile: Profile,
+  drinks: DrinkEntry[],
+  food: FoodEntry[],
+  fromMs: number,
+  toMs: number,
+  points: number = 80
+): BacSample[] {
+  const out: BacSample[] = [];
+  if (toMs <= fromMs) return out;
+  const step = (toMs - fromMs) / points;
+  for (let i = 0; i <= points; i++) {
+    const at = fromMs + step * i;
+    out.push({ at, bac: computeBacAt({ profile, drinks, food, at }, BETA_TYPICAL) });
+  }
+  return out;
+}
+
 export function peakBacInWindow(
   profile: Profile,
   drinks: DrinkEntry[],
