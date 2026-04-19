@@ -1,9 +1,8 @@
-import { Card } from '@/components/ui/Card';
 import { useSession } from '@/store/useSession';
-import { formatDate, formatDuration } from '@/lib/time';
+import { formatDuration } from '@/lib/time';
 import { riskFor } from '@/lib/bac';
 import { motion } from 'framer-motion';
-import { ChevronRight, Angry, Frown, Meh, Smile, Laugh, type LucideIcon } from 'lucide-react';
+import { ArrowRight, Angry, Frown, Meh, Smile, Laugh, type LucideIcon } from 'lucide-react';
 import type { RiskLevel } from '@/types';
 
 const RISK_DOT: Record<RiskLevel, string> = {
@@ -32,26 +31,31 @@ type Props = {
 
 export function HistoryPage({ onOpenRecap }: Props) {
   const history = useSession((s) => s.history);
+  const n = history.length;
 
   return (
-    <div className="max-w-md mx-auto p-4 pb-28">
-      <header className="mt-6 mb-5">
-        <h1 className="text-3xl font-bold text-ink tracking-tight">History</h1>
-        <p className="text-ink-muted text-sm mt-1">
-          {history.length === 0
-            ? 'No sessions yet.'
-            : `${history.length} session${history.length === 1 ? '' : 's'} logged.`}
-        </p>
+    <div className="max-w-[480px] mx-auto px-5 pt-8 pb-28">
+      <header className="mb-6">
+        <div className="eyebrow">THE LEDGER</div>
+        <h1 className="font-display text-[38px] leading-[1.05] tracking-[-0.02em] text-ink mt-2">
+          <span className="hb-italic tabular-nums">{n}</span>{' '}
+          <span>
+            {n === 1 ? 'night on the record.' : 'nights on the record.'}
+          </span>
+        </h1>
       </header>
 
-      {history.length === 0 ? (
-        <Card>
-          <p className="text-ink-muted text-sm text-center py-10">
-            Your past sessions will show up here once you end one.
+      {n === 0 ? (
+        <div className="rounded-[20px] border border-line bg-bg-card p-8 text-center">
+          <p className="font-display italic text-ink-muted text-lg leading-snug">
+            Nothing logged yet.
           </p>
-        </Card>
+          <p className="text-xs text-ink-dim mt-2 tracking-wide">
+            End a session and it will appear here.
+          </p>
+        </div>
       ) : (
-        <div className="space-y-3">
+        <div className="space-y-4">
           {history.map((s, i) => {
             const totalStd = s.drinks.reduce((sum, d) => sum + d.standardDrinks, 0);
             const duration = s.endedAt && s.startedAt ? s.endedAt - s.startedAt : 0;
@@ -65,54 +69,53 @@ export function HistoryPage({ onOpenRecap }: Props) {
                 initial={{ opacity: 0, y: 8 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: i * 0.04 }}
+                className="rounded-[20px] border border-line bg-bg-card overflow-hidden"
               >
-                <Card className="p-0 overflow-hidden">
-                  <div className="p-4">
-                    <div className="flex items-start justify-between">
+                <div className="px-5 py-4">
+                  <div className="flex items-start justify-between gap-4">
+                    <div className="flex items-start gap-2.5 flex-1 min-w-0">
+                      <span
+                        className={`h-1.5 w-1.5 rounded-full shrink-0 mt-2 ${RISK_DOT[risk]}`}
+                      />
                       <div className="flex-1 min-w-0">
-                        <div className="flex items-center gap-2">
-                          <span
-                            className={`h-2 w-2 rounded-full shrink-0 ${RISK_DOT[risk]}`}
-                          />
-                          <span className="text-ink font-semibold tracking-tight">
-                            {formatDate(s.startedAt)}
-                          </span>
+                        <div className="font-mono text-[10px] tracking-[0.14em] uppercase text-ink-muted leading-tight">
+                          <div>{formatStampTop(s.startedAt)}</div>
+                          <div>{formatStampBottom(s.startedAt)}</div>
                         </div>
-                        <div className="text-xs text-ink-muted mt-1.5 tabular-nums pl-4">
-                          {formatDuration(duration)} · {s.drinks.length} drinks ·{' '}
-                          {totalStd.toFixed(1)} std
+                        <div className="font-display text-[17px] text-ink mt-1 leading-snug">
+                          {s.drinks.length} drinks · {totalStd.toFixed(1)} std
                         </div>
-                        <div className="text-xs text-ink-dim mt-0.5 pl-4">
-                          {s.water.length} water · {s.food.length} food
-                        </div>
-                      </div>
-                      <div className="text-right shrink-0 ml-3">
-                        <div
-                          className={`text-2xl font-bold tabular-nums tracking-tight ${RISK_TEXT[risk]}`}
-                        >
-                          {peak.toFixed(3)}%
-                        </div>
-                        <div className="text-[10px] text-ink-dim font-medium mt-0.5">
-                          peak BAC
+                        <div className="font-mono text-[11px] text-ink-dim mt-1.5 tracking-tight">
+                          {formatDuration(duration)} · {s.water.length} water · {s.food.length} food
                         </div>
                       </div>
                     </div>
+                    <div className="text-right shrink-0">
+                      <div
+                        className={`font-mono text-[22px] font-semibold tabular-nums leading-none ${RISK_TEXT[risk]}`}
+                      >
+                        {peak.toFixed(3)}
+                      </div>
+                      <div className="font-mono text-[9px] tracking-[0.18em] uppercase text-ink-dim mt-1.5">
+                        PEAK
+                      </div>
+                    </div>
                   </div>
+                </div>
 
-                  {rating ? (
-                    <RecapRow rating={rating} symptoms={s.recap!.symptoms.length} />
-                  ) : canRecap ? (
-                    <button
-                      onClick={() => onOpenRecap(s.id)}
-                      className="w-full flex items-center justify-between gap-2 px-4 py-3 bg-bg-elev border-t border-line hover:bg-white active:bg-bg-deep transition min-tap"
-                    >
-                      <span className="text-sm font-semibold text-accent">
-                        How did you feel the next day?
-                      </span>
-                      <ChevronRight className="h-4 w-4 text-accent" />
-                    </button>
-                  ) : null}
-                </Card>
+                {rating ? (
+                  <RecapRow rating={rating} symptoms={s.recap!.symptoms.length} />
+                ) : canRecap ? (
+                  <button
+                    onClick={() => onOpenRecap(s.id)}
+                    className="w-full flex items-center justify-between gap-2 px-5 py-3 border-t border-line/70 hover:bg-bg-elev active:bg-bg-elev transition min-tap"
+                  >
+                    <span className="font-display italic text-[15px] text-accent">
+                      How'd the morning treat you?
+                    </span>
+                    <ArrowRight className="h-4 w-4 text-accent" />
+                  </button>
+                ) : null}
               </motion.div>
             );
           })}
@@ -122,14 +125,24 @@ export function HistoryPage({ onOpenRecap }: Props) {
   );
 }
 
+function formatStampTop(ms: number): string {
+  const d = new Date(ms);
+  const weekday = d.toLocaleDateString([], { weekday: 'short' }).toUpperCase();
+  return `${weekday} ${d.getDate()}`;
+}
+
+function formatStampBottom(ms: number): string {
+  return new Date(ms).toLocaleDateString([], { month: 'short' }).toUpperCase();
+}
+
 function RecapRow({ rating, symptoms }: { rating: 1 | 2 | 3 | 4 | 5; symptoms: number }) {
   const r = RATING_ICON[rating];
   return (
-    <div className="flex items-center gap-2 px-4 py-2.5 bg-bg-elev border-t border-line">
-      <r.icon className={`h-5 w-5 ${r.color}`} />
-      <span className="text-sm font-semibold text-ink">{r.label}</span>
+    <div className="flex items-center gap-2 px-5 py-2.5 border-t border-line/70">
+      <r.icon className={`h-4 w-4 ${r.color}`} />
+      <span className="font-display text-[14px] text-ink">{r.label}</span>
       {symptoms > 0 && (
-        <span className="text-xs text-ink-muted">
+        <span className="font-mono text-[11px] text-ink-dim tracking-tight">
           · {symptoms} {symptoms === 1 ? 'symptom' : 'symptoms'}
         </span>
       )}
