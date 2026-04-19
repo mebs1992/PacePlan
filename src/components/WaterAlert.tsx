@@ -1,5 +1,4 @@
 import { motion } from 'framer-motion';
-import { Droplet } from 'lucide-react';
 
 type Props = {
   deficit: number;
@@ -12,20 +11,20 @@ export function WaterAlert({ deficit, onAdd }: Props) {
     <motion.button
       type="button"
       onClick={onAdd}
-      initial={{ opacity: 0, y: -8 }}
+      initial={{ opacity: 0, y: -6 }}
       animate={{ opacity: 1, y: 0 }}
-      className="w-full relative overflow-hidden rounded-2xl p-4 flex items-center gap-3 bg-sky-50 border border-sky-200 animate-breathe"
+      className="w-full flex items-center gap-3 rounded-[16px] border border-line bg-bg-card px-4 py-3 hover:bg-bg-elev transition text-left"
     >
-      <div className="shrink-0 h-11 w-11 rounded-xl bg-sky-500 text-white flex items-center justify-center">
-        <Droplet className="h-5 w-5" />
-      </div>
-      <div className="text-left flex-1">
-        <div className="text-sm font-bold tracking-tight text-sky-900">Drink water</div>
-        <div className="text-xs text-sky-800/70 mt-0.5">
-          You're {deficit} {deficit === 1 ? 'glass' : 'glasses'} behind. Tap to log one now.
+      <div className="flex-1 min-w-0">
+        <div className="eyebrow">HYDRATION</div>
+        <div className="font-display text-[18px] leading-[1.15] text-ink mt-0.5">
+          Drink water.{' '}
+          <span className="hb-italic text-risk-yellow">
+            {deficit} {deficit === 1 ? 'glass' : 'glasses'} behind.
+          </span>
         </div>
       </div>
-      <div className="text-xs text-sky-900 font-bold px-2.5 py-1 rounded-lg bg-white border border-sky-200">
+      <div className="font-mono text-[11px] tracking-[0.14em] uppercase text-accent shrink-0 px-3 py-1.5 rounded-full border border-line-2">
         +1
       </div>
     </motion.button>
