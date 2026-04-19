@@ -38,6 +38,22 @@ export type WaterEntry = {
   at: number;
 };
 
+export type Symptom =
+  | 'headache'
+  | 'nausea'
+  | 'tired'
+  | 'queasy'
+  | 'dehydrated'
+  | 'anxious'
+  | 'fine';
+
+export type HangoverRecap = {
+  rating: 1 | 2 | 3 | 4 | 5;
+  symptoms: Symptom[];
+  note?: string;
+  submittedAt: number;
+};
+
 export type Session = {
   id: string;
   startedAt: number;
@@ -47,8 +63,10 @@ export type Session = {
   food: FoodEntry[];
   water: WaterEntry[];
   peakBac?: number;
+  predictedRisk?: HangoverRisk;
   wakeAtMs?: number;
   planToDrive?: boolean;
+  recap?: HangoverRecap;
 };
 
 export type RiskLevel = 'green' | 'yellow' | 'red';

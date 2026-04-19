@@ -1,9 +1,11 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Onboarding } from '@/pages/Onboarding';
 import { SessionPage } from '@/pages/Session';
 import { HistoryPage } from '@/pages/History';
 import { SettingsPage } from '@/pages/Settings';
+import { MorningRecap } from '@/components/MorningRecap';
 import { useProfile } from '@/store/useProfile';
+import { useSession } from '@/store/useSession';
 import { Beer, History, Settings as SettingsIcon } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 
@@ -12,6 +14,28 @@ type View = 'session' | 'history' | 'settings';
 export default function App() {
   const profile = useProfile((s) => s.profile);
   const [view, setView] = useState<View>('session');
+  const [recapId, setRecapId] = useState<string | null>(null);
+  const [skipped, setSkipped] = useState<Set<string>>(new Set());
+  const pendingRecapId = useSession((s) => s.pendingRecapId);
+  const historyLen = useSession((s) => s.history.length);
+
+  useEffect(() => {
+    if (!profile) return;
+    const check = () => {
+      const id = pendingRecapId();
+      if (id && !skipped.has(id)) setRecapId(id);
+    };
+    check();
+    const onFocus = () => check();
+    window.addEventListener('focus', onFocus);
+    document.addEventListener('visibilitychange', onFocus);
+    const interval = window.setInterval(check, 60_000);
+    return () => {
+      window.removeEventListener('focus', onFocus);
+      document.removeEventListener('visibilitychange', onFocus);
+      window.clearInterval(interval);
+    };
+  }, [profile, pendingRecapId, skipped, historyLen]);
 
   if (!profile) return <Onboarding />;
 
@@ -26,11 +50,20 @@ export default function App() {
           transition={{ duration: 0.22, ease: [0.32, 0.72, 0, 1] }}
         >
           {view === 'session' && <SessionPage />}
-          {view === 'history' && <HistoryPage />}
+          {view === 'history' && <HistoryPage onOpenRecap={setRecapId} />}
           {view === 'settings' && <SettingsPage />}
         </motion.div>
       </AnimatePresence>
       <BottomNav view={view} onChange={setView} />
+      {recapId && (
+        <MorningRecap
+          sessionId={recapId}
+          onDismiss={() => {
+            setSkipped((prev) => new Set(prev).add(recapId));
+            setRecapId(null);
+          }}
+        />
+      )}
     </div>
   );
 }
@@ -57,9 +90,7 @@ function BottomNav({ view, onChange }: { view: View; onChange: (v: View) => void
               aria-current={active ? 'page' : undefined}
             >
               <div
-                className={`transition-colors ${
-                  active ? 'text-accent' : 'text-ink-dim'
-                }`}
+                className={`transition-colors ${active ? 'text-accent' : 'text-ink-dim'}`}
               >
                 {it.icon}
               </div>

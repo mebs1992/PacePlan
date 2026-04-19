@@ -6,18 +6,20 @@ import type {
   DrinkType,
   FoodEntry,
   FoodSize,
+  HangoverRecap,
+  HangoverRisk,
   Session,
   WaterEntry,
 } from '@/types';
 
-const HISTORY_LIMIT = 5;
+const HISTORY_LIMIT = 20;
 
 type SessionState = {
   active: Session | null;
   history: Session[];
   now: number;
   startSession: (expectedHours: number, opts?: { wakeAtMs?: number; planToDrive?: boolean }) => void;
-  endSession: (peakBac: number) => void;
+  endSession: (peakBac: number, predictedRisk?: HangoverRisk) => string | null;
   setExpectedHours: (h: number) => void;
   setWakeAt: (ms: number | undefined) => void;
   setPlanToDrive: (v: boolean) => void;
@@ -27,6 +29,8 @@ type SessionState = {
   removeFood: (id: string) => void;
   addWater: () => void;
   removeWater: (id: string) => void;
+  submitRecap: (sessionId: string, recap: HangoverRecap) => void;
+  pendingRecapId: () => string | null;
   tickNow: () => void;
   clearHistory: () => void;
 };
@@ -52,12 +56,18 @@ export const useSession = create<SessionState>()(
         set({ active: session, now: Date.now() });
       },
 
-      endSession: (peakBac) => {
+      endSession: (peakBac, predictedRisk) => {
         const { active, history } = get();
-        if (!active) return;
-        const ended: Session = { ...active, endedAt: Date.now(), peakBac };
+        if (!active) return null;
+        const ended: Session = {
+          ...active,
+          endedAt: Date.now(),
+          peakBac,
+          predictedRisk,
+        };
         const next = [ended, ...history].slice(0, HISTORY_LIMIT);
         set({ active: null, history: next });
+        return ended.id;
       },
 
       setExpectedHours: (h) => {
@@ -130,6 +140,27 @@ export const useSession = create<SessionState>()(
         set({
           active: { ...active, water: active.water.filter((w) => w.id !== id) },
         });
+      },
+
+      submitRecap: (sessionId, recap) => {
+        const { history } = get();
+        set({
+          history: history.map((s) =>
+            s.id === sessionId ? { ...s, recap } : s
+          ),
+        });
+      },
+
+      pendingRecapId: () => {
+        const { history } = get();
+        const now = Date.now();
+        const pending = history.find((s) => {
+          if (s.recap) return false;
+          if (!s.endedAt) return false;
+          const wake = s.wakeAtMs ?? s.endedAt + 8 * 60 * 60 * 1000;
+          return now >= wake;
+        });
+        return pending?.id ?? null;
       },
 
       tickNow: () => set({ now: Date.now() }),

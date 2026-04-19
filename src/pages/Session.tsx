@@ -2,15 +2,15 @@ import { useEffect, useMemo, useState } from 'react';
 import { Card } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
 import { BACGauge } from '@/components/BACGauge';
-import { DrinkPicker } from '@/components/DrinkPicker';
-import { WaterTracker } from '@/components/WaterTracker';
 import { WaterAlert } from '@/components/WaterAlert';
-import { FoodLog } from '@/components/FoodLog';
 import { SessionTimer } from '@/components/SessionTimer';
 import { CutoffBanner } from '@/components/CutoffBanner';
-import { DrinkList } from '@/components/DrinkList';
 import { WakeTimePicker } from '@/components/WakeTimePicker';
 import { HangoverCard } from '@/components/HangoverCard';
+import { ActionTile } from '@/components/ActionTile';
+import { DrinkSheet } from '@/components/sheets/DrinkSheet';
+import { WaterSheet } from '@/components/sheets/WaterSheet';
+import { FoodSheet } from '@/components/sheets/FoodSheet';
 import { useProfile } from '@/store/useProfile';
 import { useSession } from '@/store/useSession';
 import {
@@ -28,9 +28,9 @@ import {
   waterBehind,
   waterDeficit,
 } from '@/lib/bac';
-import { formatClockWithDay } from '@/lib/time';
+import { formatClockWithDay, formatRelative } from '@/lib/time';
 import { motion } from 'framer-motion';
-import { Car, Moon } from 'lucide-react';
+import { Beer, Car, Cookie, Droplet, Moon, UtensilsCrossed } from 'lucide-react';
 
 export function SessionPage() {
   const profile = useProfile((s) => s.profile)!;
@@ -42,10 +42,14 @@ export function SessionPage() {
   const addDrink = useSession((s) => s.addDrink);
   const removeDrink = useSession((s) => s.removeDrink);
   const addFood = useSession((s) => s.addFood);
+  const removeFood = useSession((s) => s.removeFood);
   const addWater = useSession((s) => s.addWater);
+  const removeWater = useSession((s) => s.removeWater);
   const setExpectedHours = useSession((s) => s.setExpectedHours);
   const setWakeAt = useSession((s) => s.setWakeAt);
   const setPlanToDrive = useSession((s) => s.setPlanToDrive);
+
+  const [sheet, setSheet] = useState<'drink' | 'water' | 'food' | null>(null);
 
   useEffect(() => {
     if (!active) return;
@@ -100,52 +104,45 @@ export function SessionPage() {
     : null;
   const legalDrinksLeft = suggestedDrinksRemaining(inputs, sessionEndsAt, 1.4, 0.045);
 
+  const drinkTotal = active.drinks.reduce((s, d) => s + d.standardDrinks, 0);
+  const drinkCaption =
+    active.drinks.length === 0
+      ? 'Tap to log your first'
+      : `${drinkTotal.toFixed(1)} std · last ${formatRelative(
+          active.drinks[active.drinks.length - 1].at,
+          now
+        )}`;
+
+  const waterTarget = Math.max(active.drinks.length, 1);
+  const waterCaption = behind
+    ? `${deficit} ${deficit === 1 ? 'glass' : 'glasses'} behind — drink up`
+    : active.drinks.length === 0
+      ? 'Log a glass anytime'
+      : `${active.water.length}/${waterTarget} — good pace`;
+
+  const lastFood = active.food[active.food.length - 1];
+  const foodCaption = lastFood
+    ? `Last ${lastFood.size} · ${formatRelative(lastFood.at, now)}`
+    : 'No food logged yet';
+
   return (
     <div className="max-w-md mx-auto p-4 pb-28">
       <header className="mt-6 mb-4 flex items-baseline justify-between">
         <h1 className="text-2xl font-bold text-ink tracking-tight">Hi, {profile.name}</h1>
-        <span className="text-[11px] text-ink-dim font-medium">
-          Estimates only
-        </span>
+        <span className="text-[11px] text-ink-dim font-medium">Estimates only</span>
       </header>
 
-      {behind && <WaterAlert deficit={deficit} onAdd={addWater} />}
-
-      <div className={behind ? 'mt-3' : ''}>
-        <DrivingToggle value={planToDrive} onChange={setPlanToDrive} />
-      </div>
-
-      {planToDrive ? (
-        <div className="mt-3">
-          <BACGauge range={range} risk={risk} />
-          {risk === 'red' && (
-            <motion.div
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              className="mt-3 rounded-2xl p-3 bg-rose-50 border border-rose-200 text-sm text-risk-red font-medium"
-            >
-              Estimated BAC exceeds the legal driving limit in most regions (0.05). Do
-              not drive. Consider stopping.
-            </motion.div>
-          )}
-          {risk === 'yellow' && (
-            <div className="mt-3 rounded-2xl p-3 bg-amber-50 border border-amber-200 text-sm text-amber-900 font-medium">
-              Approaching the driving limit. Plan a ride home.
-            </div>
-          )}
-        </div>
-      ) : (
-        <div className="mt-3">
-          <HangoverCard
-            risk={hRisk}
-            label={hangoverLabel(hRisk)}
-            drinksLeft={hangoverDrinksLeft}
-            wakeAtMs={wakeAtMs}
-            now={now}
-            bacAtWake={bacAtWake}
-          />
+      {behind && (
+        <div className="mb-3">
+          <WaterAlert deficit={deficit} onAdd={() => setSheet('water')} />
         </div>
       )}
+
+      <DrivingToggle value={planToDrive} onChange={setPlanToDrive} />
+
+      <div className="mt-3">
+        <BACGauge range={range} risk={risk} />
+      </div>
 
       <div className="grid grid-cols-2 gap-2 mt-3">
         {planToDrive ? (
@@ -168,14 +165,82 @@ export function SessionPage() {
         />
       </div>
 
-      {!planToDrive && (
+      {planToDrive ? (
+        <>
+          {risk === 'red' && (
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              className="mt-3 rounded-2xl p-3 bg-rose-50 border border-rose-200 text-sm text-risk-red font-medium"
+            >
+              Estimated BAC exceeds the legal driving limit (0.05). Do not drive.
+              Consider stopping.
+            </motion.div>
+          )}
+          {risk === 'yellow' && (
+            <div className="mt-3 rounded-2xl p-3 bg-amber-50 border border-amber-200 text-sm text-amber-900 font-medium">
+              Approaching the driving limit. Plan a ride home.
+            </div>
+          )}
+        </>
+      ) : (
         <div className="mt-3">
-          <BACGauge range={range} risk={risk} />
+          <HangoverCard
+            risk={hRisk}
+            label={hangoverLabel(hRisk)}
+            drinksLeft={hangoverDrinksLeft}
+            wakeAtMs={wakeAtMs}
+            now={now}
+            bacAtWake={bacAtWake}
+          />
         </div>
       )}
 
-      <div className="space-y-3 mt-3">
-        <CutoffBanner result={cutoff} now={now} />
+      {cutoff.kind !== 'no-drinks' && (
+        <div className="mt-3">
+          <CutoffBanner result={cutoff} now={now} />
+        </div>
+      )}
+
+      <div className="mt-5 mb-2 flex items-baseline justify-between">
+        <h2 className="text-[11px] font-bold uppercase tracking-wider text-ink-muted">
+          Track
+        </h2>
+      </div>
+      <div className="space-y-2">
+        <ActionTile
+          tone="coral"
+          icon={Beer}
+          label="Drink"
+          count={active.drinks.length}
+          caption={drinkCaption}
+          onClick={() => setSheet('drink')}
+        />
+        <ActionTile
+          tone="sky"
+          icon={Droplet}
+          label="Water"
+          count={active.water.length}
+          caption={waterCaption}
+          alert={behind}
+          onClick={() => setSheet('water')}
+        />
+        <ActionTile
+          tone="amber"
+          icon={lastFood?.size === 'meal' ? UtensilsCrossed : Cookie}
+          label="Food"
+          count={active.food.length}
+          caption={foodCaption}
+          onClick={() => setSheet('food')}
+        />
+      </div>
+
+      <div className="mt-5 mb-2 flex items-baseline justify-between">
+        <h2 className="text-[11px] font-bold uppercase tracking-wider text-ink-muted">
+          Session
+        </h2>
+      </div>
+      <div className="space-y-3">
         <WakeTimePicker wakeAtMs={wakeAtMs} now={now} onChange={setWakeAt} />
         <SessionTimer
           startedAt={active.startedAt}
@@ -183,39 +248,58 @@ export function SessionPage() {
           now={now}
           onChangeHours={setExpectedHours}
         />
-        <DrinkPicker onAdd={addDrink} />
-        <WaterTracker
-          glasses={active.water.length}
-          drinks={active.drinks.length}
-          behind={behind}
-          onAdd={addWater}
-        />
-        <FoodLog entries={active.food} now={now} onAdd={addFood} />
-        <DrinkList drinks={active.drinks} now={now} onRemove={removeDrink} />
-
-        <Button
-          variant="secondary"
-          size="lg"
-          className="w-full mt-4"
-          onClick={() => {
-            if (confirm('End session and save to history?')) {
-              const peak = peakBacInWindow(
-                profile,
-                active.drinks,
-                active.food,
-                active.startedAt,
-                Date.now()
-              );
-              endSession(peak);
-            }
-          }}
-        >
-          End session
-        </Button>
-        <p className="text-xs text-ink-dim text-center">
-          Estimates only — never drive after drinking.
-        </p>
       </div>
+
+      <Button
+        variant="secondary"
+        size="lg"
+        className="w-full mt-6"
+        onClick={() => {
+          if (confirm('End session and save to history?')) {
+            const peak = peakBacInWindow(
+              profile,
+              active.drinks,
+              active.food,
+              active.startedAt,
+              Date.now()
+            );
+            endSession(peak, hRisk);
+          }
+        }}
+      >
+        End session
+      </Button>
+      <p className="text-xs text-ink-dim text-center mt-3">
+        Estimates only — never drive after drinking.
+      </p>
+
+      <DrinkSheet
+        open={sheet === 'drink'}
+        onClose={() => setSheet(null)}
+        drinks={active.drinks}
+        now={now}
+        onAdd={addDrink}
+        onRemove={removeDrink}
+      />
+      <WaterSheet
+        open={sheet === 'water'}
+        onClose={() => setSheet(null)}
+        glasses={active.water.length}
+        drinks={active.drinks.length}
+        behind={behind}
+        water={active.water}
+        now={now}
+        onAdd={addWater}
+        onRemove={removeWater}
+      />
+      <FoodSheet
+        open={sheet === 'food'}
+        onClose={() => setSheet(null)}
+        entries={active.food}
+        now={now}
+        onAdd={addFood}
+        onRemove={removeFood}
+      />
     </div>
   );
 }
@@ -233,9 +317,7 @@ function DrivingToggle({
         type="button"
         onClick={() => onChange(false)}
         className={`flex-1 min-tap h-11 rounded-xl flex items-center justify-center gap-2 text-sm font-semibold transition-all ${
-          !value
-            ? 'bg-bg-card text-ink shadow-press'
-            : 'text-ink-muted'
+          !value ? 'bg-bg-card text-ink shadow-press' : 'text-ink-muted'
         }`}
       >
         <Moon className="h-4 w-4" /> Not driving
@@ -244,9 +326,7 @@ function DrivingToggle({
         type="button"
         onClick={() => onChange(true)}
         className={`flex-1 min-tap h-11 rounded-xl flex items-center justify-center gap-2 text-sm font-semibold transition-all ${
-          value
-            ? 'bg-risk-red text-white shadow-press'
-            : 'text-ink-muted'
+          value ? 'bg-risk-red text-white shadow-press' : 'text-ink-muted'
         }`}
       >
         <Car className="h-4 w-4" /> I plan on driving
@@ -280,10 +360,7 @@ function StartSession({
   onStart,
 }: {
   profileName: string;
-  onStart: (
-    h: number,
-    opts?: { wakeAtMs?: number; planToDrive?: boolean }
-  ) => void;
+  onStart: (h: number, opts?: { wakeAtMs?: number; planToDrive?: boolean }) => void;
 }) {
   const [hours, setHours] = useState(4);
   const [wakeDraft, setWakeDraft] = useState(() => {
@@ -324,9 +401,7 @@ function StartSession({
         transition={{ delay: 0.1 }}
       >
         <Card className="text-center">
-          <div className="text-xs font-semibold text-ink-muted">
-            Expected duration
-          </div>
+          <div className="text-xs font-semibold text-ink-muted">Expected duration</div>
           <div className="text-[88px] font-bold text-ink my-3 tabular-nums leading-none tracking-tight">
             <span className="sunset-text">{hours}</span>
             <span className="text-3xl text-ink-muted ml-1 font-semibold">h</span>
@@ -378,9 +453,7 @@ function StartSession({
                 type="button"
                 onClick={() => setDriving(false)}
                 className={`h-11 rounded-xl text-sm font-semibold min-tap transition-all ${
-                  !driving
-                    ? 'bg-ink text-white'
-                    : 'bg-bg-elev border border-line text-ink-muted'
+                  !driving ? 'bg-ink text-white' : 'bg-bg-elev border border-line text-ink-muted'
                 }`}
               >
                 No
@@ -389,9 +462,7 @@ function StartSession({
                 type="button"
                 onClick={() => setDriving(true)}
                 className={`h-11 rounded-xl text-sm font-semibold min-tap transition-all ${
-                  driving
-                    ? 'bg-risk-red text-white'
-                    : 'bg-bg-elev border border-line text-ink-muted'
+                  driving ? 'bg-risk-red text-white' : 'bg-bg-elev border border-line text-ink-muted'
                 }`}
               >
                 Yes

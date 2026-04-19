@@ -1,4 +1,3 @@
-import { Card } from '@/components/ui/Card';
 import { formatRelative } from '@/lib/time';
 import { X } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -11,13 +10,19 @@ type Props = {
 };
 
 export function DrinkList({ drinks, now, onRemove }: Props) {
-  if (drinks.length === 0) return null;
+  if (drinks.length === 0) {
+    return (
+      <div className="text-center text-sm text-ink-muted py-6">
+        No drinks yet. Tap one above to log.
+      </div>
+    );
+  }
   const total = drinks.reduce((s, d) => s + d.standardDrinks, 0);
   return (
-    <Card>
-      <div className="flex items-baseline justify-between mb-2">
-        <h2 className="text-base font-semibold text-ink">Drinks</h2>
-        <div className="text-xs text-ink-muted tabular-nums">
+    <div>
+      <div className="flex items-baseline justify-between mb-1">
+        <div className="text-sm font-bold text-ink">Logged drinks</div>
+        <div className="text-xs text-ink-muted tabular-nums font-semibold">
           {drinks.length} · {total.toFixed(1)} std
         </div>
       </div>
@@ -53,6 +58,6 @@ export function DrinkList({ drinks, now, onRemove }: Props) {
             ))}
         </AnimatePresence>
       </ul>
-    </Card>
+    </div>
   );
 }
