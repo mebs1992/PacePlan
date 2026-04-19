@@ -1,6 +1,4 @@
 import { Sheet } from '@/components/ui/Sheet';
-import { Button } from '@/components/ui/Button';
-import { Moon } from 'lucide-react';
 import { formatDuration } from '@/lib/time';
 
 type Props = {
@@ -22,32 +20,36 @@ export function ConfirmEndSheet({
 }: Props) {
   return (
     <Sheet open={open} onClose={onClose}>
-      <div className="text-center pb-4 pt-1">
-        <div className="mx-auto h-14 w-14 rounded-full bg-accent/10 flex items-center justify-center mb-3">
-          <Moon className="h-7 w-7 text-accent" />
-        </div>
-        <h2 className="text-xl font-bold text-ink tracking-tight">Wrap up the night?</h2>
-        <p className="text-sm text-ink-muted mt-1.5 leading-relaxed">
-          We'll save tonight to your history and check in with a recap tomorrow morning.
+      <div>
+        <div className="eyebrow">LAST CALL</div>
+        <h2 className="font-display text-[30px] leading-[1.02] tracking-[-0.02em] text-ink mt-1.5">
+          End the <span className="hb-italic text-accent">evening?</span>
+        </h2>
+        <p className="font-display italic text-[14px] text-ink-muted mt-2 leading-snug">
+          We&rsquo;ll check in with you in the morning. No judgement, mostly.
         </p>
       </div>
 
-      <div className="grid grid-cols-3 gap-2 rounded-2xl bg-bg-elev border border-line p-3 text-center">
-        <Stat label="Duration" value={formatDuration(duration)} />
-        <Stat label="Drinks" value={String(drinks)} />
-        <Stat label="Peak BAC" value={`${peak.toFixed(3)}%`} />
+      <div className="grid grid-cols-3 gap-2 mt-5">
+        <Stat label="RAN" value={formatDuration(duration)} />
+        <Stat label="DRINKS" value={String(drinks)} />
+        <Stat label="PEAK BAC" value={peak.toFixed(3)} />
       </div>
 
-      <div className="mt-5 space-y-2">
-        <Button className="w-full" size="lg" onClick={onConfirm}>
-          End session
-        </Button>
+      <div className="grid grid-cols-2 gap-2 mt-5">
         <button
           type="button"
           onClick={onClose}
-          className="w-full h-11 text-sm font-semibold text-ink-muted hover:text-ink transition"
+          className="h-12 rounded-full border border-line bg-bg-card text-ink font-display text-[15px] hover:bg-bg-elev transition min-tap"
         >
           Keep going
+        </button>
+        <button
+          type="button"
+          onClick={onConfirm}
+          className="h-12 rounded-full bg-ink text-bg-card font-display italic text-[16px] hover:brightness-110 active:brightness-95 transition min-tap"
+        >
+          End session
         </button>
       </div>
     </Sheet>
@@ -56,11 +58,11 @@ export function ConfirmEndSheet({
 
 function Stat({ label, value }: { label: string; value: string }) {
   return (
-    <div>
-      <div className="text-[10px] font-semibold text-ink-muted uppercase tracking-wider">
+    <div className="rounded-[16px] border border-line bg-bg-elev px-3 py-3">
+      <div className="font-mono text-[9px] tracking-[0.18em] uppercase text-ink-dim">
         {label}
       </div>
-      <div className="text-sm font-bold text-ink tabular-nums tracking-tight mt-1">
+      <div className="font-display tabular-nums text-[22px] text-ink leading-none mt-1.5">
         {value}
       </div>
     </div>

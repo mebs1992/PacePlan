@@ -3,7 +3,6 @@ import { Sheet } from '@/components/ui/Sheet';
 import { DrinkPanel } from '@/components/panels/DrinkPanel';
 import { WaterPanel } from '@/components/panels/WaterPanel';
 import { FoodPanel } from '@/components/panels/FoodPanel';
-import { Beer, Droplet, UtensilsCrossed } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { cn } from '@/lib/utils';
 import type {
@@ -57,29 +56,25 @@ export function TrackerSheet({
 
   return (
     <Sheet open={open} onClose={onClose}>
-      <div className="relative bg-bg-elev rounded-2xl p-1 flex border border-line mb-4">
-        <TabButton
-          active={tab === 'drink'}
-          onClick={() => setTab('drink')}
-          icon={<Beer className="h-4 w-4" />}
-          label="Drink"
-          count={drinks.length}
-        />
-        <TabButton
+      <div className="flex items-end justify-between mb-3 gap-3">
+        <div className="min-w-0">
+          <div className="eyebrow">LOG</div>
+          <h2 className="font-display text-[26px] leading-[1.05] tracking-[-0.02em] text-ink mt-1">
+            Add to the <span className="hb-italic text-accent">ledger.</span>
+          </h2>
+        </div>
+      </div>
+
+      <div className="grid grid-cols-3 gap-1.5 p-1 rounded-full bg-bg-elev border border-line mb-5">
+        <SegButton active={tab === 'drink'} onClick={() => setTab('drink')} label="Drink" count={drinks.length} />
+        <SegButton
           active={tab === 'water'}
           onClick={() => setTab('water')}
-          icon={<Droplet className="h-4 w-4" />}
           label="Water"
           count={water.length}
           alert={behind}
         />
-        <TabButton
-          active={tab === 'food'}
-          onClick={() => setTab('food')}
-          icon={<UtensilsCrossed className="h-4 w-4" />}
-          label="Food"
-          count={food.length}
-        />
+        <SegButton active={tab === 'food'} onClick={() => setTab('food')} label="Food" count={food.length} />
       </div>
 
       <motion.div
@@ -120,17 +115,15 @@ export function TrackerSheet({
   );
 }
 
-function TabButton({
+function SegButton({
   active,
   onClick,
-  icon,
   label,
   count,
   alert,
 }: {
   active: boolean;
   onClick: () => void;
-  icon: React.ReactNode;
   label: string;
   count: number;
   alert?: boolean;
@@ -140,22 +133,23 @@ function TabButton({
       type="button"
       onClick={onClick}
       className={cn(
-        'relative flex-1 min-tap h-11 rounded-xl flex items-center justify-center gap-1.5 text-sm font-semibold transition-all',
-        active ? 'bg-bg-card text-ink shadow-press' : 'text-ink-muted',
+        'relative h-10 rounded-full flex items-center justify-center gap-1.5 font-display text-[15px] transition-all min-tap',
+        active
+          ? 'bg-bg-card text-ink shadow-press'
+          : 'text-ink-muted hover:text-ink',
       )}
     >
-      {icon}
-      <span>{label}</span>
+      <span className={active ? 'hb-italic' : ''}>{label}</span>
       <span
         className={cn(
-          'text-[11px] tabular-nums font-semibold',
+          'font-mono text-[10px] tabular-nums tracking-tight',
           active ? 'text-ink-muted' : 'text-ink-dim',
         )}
       >
         {count}
       </span>
       {alert && !active && (
-        <span className="absolute top-1.5 right-2 h-1.5 w-1.5 rounded-full bg-risk-yellow" />
+        <span className="absolute top-1.5 right-3 h-1.5 w-1.5 rounded-full bg-risk-yellow" />
       )}
     </button>
   );

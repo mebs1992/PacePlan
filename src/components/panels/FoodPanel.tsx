@@ -1,6 +1,4 @@
-import { Cookie, UtensilsCrossed, X } from 'lucide-react';
-import { motion } from 'framer-motion';
-import { formatRelative } from '@/lib/time';
+import { motion, AnimatePresence } from 'framer-motion';
 import type { FoodEntry, FoodSize } from '@/types';
 
 type Props = {
@@ -10,67 +8,84 @@ type Props = {
   onRemove: (id: string) => void;
 };
 
+function fmtClock(ms: number): string {
+  const d = new Date(ms);
+  return `${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`;
+}
+
 export function FoodPanel({ entries, now, onAdd, onRemove }: Props) {
   return (
     <div>
-      <div className="grid grid-cols-2 gap-2.5">
+      <div className="rounded-[16px] border border-line bg-bg-elev p-4">
+        <div className="eyebrow">FOOD SLOWS ABSORPTION</div>
+        <p className="font-display text-[15px] leading-[1.45] text-ink-muted mt-1.5">
+          A meal bumps absorption from ~20 to ~75 minutes.{' '}
+          <span className="hb-italic text-ink">Snack is in the middle.</span>
+        </p>
+      </div>
+
+      <div className="grid grid-cols-2 gap-2 mt-3">
         <motion.button
-          whileTap={{ scale: 0.96 }}
+          type="button"
+          whileTap={{ scale: 0.97 }}
           onClick={() => onAdd('snack')}
-          className="flex flex-col items-center justify-center gap-2 h-28 rounded-2xl bg-amber-50 border border-amber-200 active:bg-amber-100 min-tap transition"
+          className="flex flex-col items-center justify-center gap-1 min-h-[88px] rounded-[16px] border border-line bg-bg-elev hover:bg-bg-card active:bg-bg-card transition min-tap"
         >
-          <Cookie className="h-8 w-8 text-amber-700" />
-          <span className="text-ink font-bold tracking-tight">Snack</span>
-          <span className="text-[11px] text-amber-800/70">Chips, nuts, small bite</span>
+          <span className="font-display text-[18px] text-ink leading-none">Snack</span>
+          <span className="font-mono text-[10px] text-ink-dim mt-1 tracking-tight">
+            ~45 min absorption
+          </span>
         </motion.button>
         <motion.button
-          whileTap={{ scale: 0.96 }}
+          type="button"
+          whileTap={{ scale: 0.97 }}
           onClick={() => onAdd('meal')}
-          className="flex flex-col items-center justify-center gap-2 h-28 rounded-2xl bg-emerald-50 border border-emerald-200 active:bg-emerald-100 min-tap transition"
+          className="flex flex-col items-center justify-center gap-1 min-h-[88px] rounded-[16px] border border-line bg-bg-elev hover:bg-bg-card active:bg-bg-card transition min-tap"
         >
-          <UtensilsCrossed className="h-8 w-8 text-emerald-700" />
-          <span className="text-ink font-bold tracking-tight">Meal</span>
-          <span className="text-[11px] text-emerald-800/70">Burger, pasta, proper food</span>
+          <span className="font-display text-[18px] text-ink leading-none">Meal</span>
+          <span className="font-mono text-[10px] text-ink-dim mt-1 tracking-tight">
+            ~75 min absorption
+          </span>
         </motion.button>
       </div>
 
-      <p className="text-xs text-ink-muted mt-3">
-        Food slows alcohol absorption — meals more than snacks.
-      </p>
-
       {entries.length > 0 && (
-        <div className="mt-6 border-t border-line pt-4">
-          <div className="text-sm font-bold text-ink mb-2">History</div>
-          <ul>
-            {entries
-              .slice()
-              .reverse()
-              .map((f) => (
-                <li
-                  key={f.id}
-                  className="flex items-center justify-between py-2 border-b border-line last:border-0"
-                >
-                  <div className="flex items-center gap-2">
-                    {f.size === 'meal' ? (
-                      <UtensilsCrossed className="h-4 w-4 text-emerald-700" />
-                    ) : (
-                      <Cookie className="h-4 w-4 text-amber-700" />
-                    )}
-                    <span className="text-sm text-ink capitalize font-semibold">{f.size}</span>
-                    <span className="text-xs text-ink-muted tabular-nums">
-                      {formatRelative(f.at, now)}
-                    </span>
-                  </div>
-                  <button
+        <div className="mt-6">
+          <div className="flex items-baseline justify-between mb-2">
+            <div className="eyebrow">LOGGED · {entries.length}</div>
+            <div className="font-mono text-[10px] text-ink-dim tracking-tight">
+              tap to undo
+            </div>
+          </div>
+          <div className="flex flex-wrap gap-1.5">
+            <AnimatePresence initial={false}>
+              {entries
+                .slice()
+                .reverse()
+                .map((f) => (
+                  <motion.button
+                    key={f.id}
+                    type="button"
+                    layout
+                    initial={{ opacity: 0, scale: 0.9 }}
+                    animate={{ opacity: 1, scale: 1 }}
+                    exit={{ opacity: 0, scale: 0.85 }}
+                    transition={{ duration: 0.18 }}
                     onClick={() => onRemove(f.id)}
-                    className="text-ink-dim hover:text-risk-red p-2 min-tap transition"
-                    aria-label="Remove"
+                    className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full border border-line bg-bg-elev font-mono text-[11px] text-ink-muted hover:text-ink hover:border-line-2 tabular-nums tracking-tight transition"
                   >
-                    <X className="h-4 w-4" />
-                  </button>
-                </li>
-              ))}
-          </ul>
+                    <span className="font-display italic text-ink text-[12px] capitalize">
+                      {f.size}
+                    </span>
+                    <span>· {fmtClock(f.at)}</span>
+                    <span className="text-ink-dim">
+                      · {Math.max(0, Math.round((now - f.at) / 60000))}m
+                    </span>
+                    <span className="text-ink-dim">✕</span>
+                  </motion.button>
+                ))}
+            </AnimatePresence>
+          </div>
         </div>
       )}
     </div>

@@ -2,26 +2,40 @@ import { useState } from 'react';
 import { DRINK_PRESETS } from '@/lib/drinks';
 import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
-import { Beer, Wine, Plus, Martini, GlassWater } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import type { DrinkType } from '@/types';
 
-const ICONS: Record<DrinkType, React.ReactNode> = {
-  mid_beer: <Beer className="h-6 w-6" />,
-  full_beer: <Beer className="h-6 w-6" />,
-  wine: <Wine className="h-6 w-6" />,
-  spirit: <GlassWater className="h-6 w-6" />,
-  cocktail: <Martini className="h-6 w-6" />,
-  custom: <Plus className="h-6 w-6" />,
-};
-
-const TILE_COLOR: Record<DrinkType, string> = {
-  mid_beer: 'text-amber-600',
-  full_beer: 'text-orange-600',
-  wine: 'text-rose-600',
-  spirit: 'text-sky-700',
-  cocktail: 'text-fuchsia-700',
-  custom: 'text-ink-muted',
+const ICONS: Record<DrinkType, (c: string) => React.ReactNode> = {
+  mid_beer: (c) => (
+    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke={c} strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M7 7h10l-1 13H8L7 7zM7 7V5h10v2M11 11v5M14 11v5M17 9h2a2 2 0 012 2v4a2 2 0 01-2 2h-2" />
+    </svg>
+  ),
+  full_beer: (c) => (
+    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke={c} strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M7 5h10l-1 15H8L7 5zM17 8h2a2 2 0 012 2v5a2 2 0 01-2 2h-2M10 9v7M14 9v7" />
+    </svg>
+  ),
+  wine: (c) => (
+    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke={c} strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M8 3h8l-1 7a4 4 0 01-3 4v6M7 21h10M12 14a4 4 0 003-4L14 3" />
+    </svg>
+  ),
+  spirit: (c) => (
+    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke={c} strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M8 3h8v5c0 4-4 4-4 8v6M8 3v5c0 4 4 4 4 8M7 21h10" />
+    </svg>
+  ),
+  cocktail: (c) => (
+    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke={c} strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M4 5h16l-8 8-8-8zM12 13v7M8 20h8" />
+    </svg>
+  ),
+  custom: (c) => (
+    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke={c} strokeWidth="1.5" strokeLinecap="round">
+      <path d="M12 5v14M5 12h14" />
+    </svg>
+  ),
 };
 
 type Props = {
@@ -34,12 +48,12 @@ export function DrinkPicker({ onAdd }: Props) {
 
   return (
     <div>
-      <div className="grid grid-cols-2 gap-2.5">
+      <div className="grid grid-cols-2 gap-2">
         {DRINK_PRESETS.map((preset) => (
           <motion.button
             key={preset.type}
-            whileTap={{ scale: 0.96 }}
-            transition={{ type: 'spring', stiffness: 400, damping: 18 }}
+            whileTap={{ scale: 0.97 }}
+            transition={{ type: 'spring', stiffness: 400, damping: 20 }}
             onClick={() =>
               onAdd({
                 type: preset.type,
@@ -47,30 +61,30 @@ export function DrinkPicker({ onAdd }: Props) {
                 standardDrinks: preset.standardDrinks,
               })
             }
-            className="relative flex items-center gap-3 p-3.5 rounded-2xl bg-bg-elev border border-line hover:bg-white active:bg-bg-deep min-tap transition text-left"
+            className="flex items-center gap-3 p-3.5 rounded-[16px] bg-bg-elev border border-line hover:bg-bg-card active:bg-bg-card transition text-left min-tap"
           >
-            <div className={TILE_COLOR[preset.type]}>{ICONS[preset.type]}</div>
+            <span className="text-accent shrink-0">{ICONS[preset.type]('currentColor')}</span>
             <div className="flex-1 min-w-0">
-              <div className="text-sm font-bold text-ink leading-tight tracking-tight">
+              <div className="font-display text-[16px] leading-none text-ink">
                 {preset.label}
               </div>
-              <div className="text-[11px] text-ink-muted leading-tight mt-0.5">
+              <div className="font-mono text-[10px] text-ink-dim leading-tight mt-1.5 tracking-tight">
                 {preset.sublabel} · {preset.standardDrinks} std
               </div>
             </div>
           </motion.button>
         ))}
         <motion.button
-          whileTap={{ scale: 0.96 }}
-          transition={{ type: 'spring', stiffness: 400, damping: 18 }}
+          whileTap={{ scale: 0.97 }}
+          transition={{ type: 'spring', stiffness: 400, damping: 20 }}
           onClick={() => setShowCustom((v) => !v)}
-          className="relative flex items-center gap-3 p-3.5 rounded-2xl bg-bg-elev border border-dashed border-ink/20 hover:bg-white active:bg-bg-deep min-tap transition text-left col-span-2"
+          className="col-span-2 flex items-center gap-3 p-3.5 rounded-[16px] bg-bg-elev border border-dashed border-line-2 hover:bg-bg-card active:bg-bg-card transition text-left min-tap"
         >
-          <div className={TILE_COLOR.custom}>{ICONS.custom}</div>
+          <span className="text-ink-muted shrink-0">{ICONS.custom('currentColor')}</span>
           <div className="flex-1 min-w-0">
-            <div className="text-sm font-bold text-ink leading-tight tracking-tight">Custom</div>
-            <div className="text-[11px] text-ink-muted leading-tight mt-0.5">
-              Enter a specific number of standard drinks
+            <div className="font-display text-[16px] leading-none text-ink">Custom</div>
+            <div className="font-mono text-[10px] text-ink-dim leading-tight mt-1.5 tracking-tight">
+              Enter specific standard drinks
             </div>
           </div>
         </motion.button>
