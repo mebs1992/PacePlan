@@ -18,8 +18,10 @@ type SessionState = {
   active: Session | null;
   history: Session[];
   now: number;
+  justEndedId: string | null;
   startSession: (expectedHours: number, opts?: { wakeAtMs?: number; planToDrive?: boolean }) => void;
   endSession: (peakBac: number, predictedRisk?: HangoverRisk) => string | null;
+  clearJustEnded: () => void;
   setExpectedHours: (h: number) => void;
   setWakeAt: (ms: number | undefined) => void;
   setPlanToDrive: (v: boolean) => void;
@@ -41,6 +43,7 @@ export const useSession = create<SessionState>()(
       active: null,
       history: [],
       now: Date.now(),
+      justEndedId: null,
 
       startSession: (expectedHours, opts) => {
         const session: Session = {
@@ -66,9 +69,11 @@ export const useSession = create<SessionState>()(
           predictedRisk,
         };
         const next = [ended, ...history].slice(0, HISTORY_LIMIT);
-        set({ active: null, history: next });
+        set({ active: null, history: next, justEndedId: ended.id });
         return ended.id;
       },
+
+      clearJustEnded: () => set({ justEndedId: null }),
 
       setExpectedHours: (h) => {
         const { active } = get();

@@ -33,21 +33,30 @@ No test suite.
   - `active: Session | null` — the in-progress session
   - `history: Session[]` — ended sessions (capped at 20)
   - `now: number` — ticked every 15s while a session is active
+  - `justEndedId: string | null` — transient (not persisted) flag set by
+    `endSession`. App.tsx watches this to open the quiz exactly once per
+    end. Cleared by `clearJustEnded()` after App reads it.
   - Actions: `startSession`, `endSession` (returns ended id), `addDrink`,
     `removeDrink`, `addFood`, `addWater`, `setExpectedHours`, `setWakeAt`,
-    `setPlanToDrive`, `submitRecap`, `pendingRecapId`, `tickNow`
-- `pendingRecapId()` returns the first history session that's ended, has no
-  recap yet, and whose wake time (or `endedAt + 8h` default) has passed.
+    `setPlanToDrive`, `submitRecap`, `tickNow`
+- `pendingRecapId()` — legacy, no longer used for auto-trigger. History
+  page uses `!s.recap` directly to show the "open recap" button.
 
-Persisted keys: `active`, `history` only.
+Persisted keys: `active`, `history` only. `justEndedId` is intentionally NOT
+persisted so refreshes don't re-trigger the quiz.
 
 ### Top-level flow (`src/App.tsx`)
 
 - If no profile → `<Onboarding />`
 - Otherwise: the selected view + `<BottomNav>` + a global `<MorningRecap>` modal
-- Recap lifecycle: `skippedRef` (useRef, NOT state) tracks dismissed ids so
-  dismiss doesn't retrigger the effect. `dismissRecap()` always routes back to
-  the session view.
+- Recap lifecycle: quiz opens ONLY when `justEndedId` transitions from null
+  to an id (i.e. a session was just ended this tab session). A single effect
+  calls `setRecapId(justEndedId)` then `clearJustEnded()`. On refresh,
+  `justEndedId` is null (not persisted), so the quiz does NOT re-trigger.
+- No top-level AnimatePresence — each page handles its own mount animations.
+  Wrapping the whole view in framer-motion's AnimatePresence + motion.div
+  caused stuck blank screens under React StrictMode when SessionPage's
+  internal content swapped (StartSession ↔ active UI).
 
 ### Session view (`src/pages/Session.tsx`)
 
@@ -103,11 +112,13 @@ driving warning, "Able to Drive" threshold).
 - Zustand action references are stable across renders — safe to use as
   `useEffect` deps without causing loops.
 - Do NOT put `Set`/`Map` state in `useEffect` deps if the effect only reads
-  it on fire events (focus, interval) — use `useRef` instead to avoid
-  spurious re-runs. This was the root cause of the "quiz resets answers" bug.
-- `AnimatePresence mode="wait"` at the top level caused stuck `opacity: 0`
-  when unrelated re-renders interrupted its cycle. We use `initial={false}`
-  with simultaneous crossfade instead.
+  it on fire events (focus, interval) — it causes spurious re-runs.
+- The quiz trigger uses a one-shot store flag (`justEndedId`), NOT a history
+  scan. The scan approach ran every time its deps changed AND on every
+  refresh, causing the quiz to pop on app open and every reload.
+- Top-level `AnimatePresence` wrapping causes blank-screen stuck states
+  under React StrictMode when children re-render heavily. Keep mount
+  animations inside each page, not at the router level.
 - `computeBacAt` filters drinks by `d.at <= at`, so projecting forward
   (passing a future `at`) correctly accounts for pending absorption of
   already-logged drinks but does NOT anticipate unlogged future drinks.
