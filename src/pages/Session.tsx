@@ -90,6 +90,27 @@ export function SessionPage() {
     };
   }, [active, tickNow]);
 
+  const sessionEndsAt = active
+    ? active.startedAt + active.expectedHours * 60 * 60 * 1000
+    : 0;
+  const wakeAtMs = active?.wakeAtMs;
+
+  const curve = useMemo(
+    () =>
+      active
+        ? bacCurve(
+            profile,
+            active.drinks,
+            active.food,
+            active.startedAt,
+            Math.max(sessionEndsAt, (wakeAtMs ?? 0) + 60_000, now + 60_000),
+            100,
+          )
+        : [],
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [profile, active?.drinks, active?.food, active?.startedAt, sessionEndsAt, wakeAtMs],
+  );
+
   if (!active) {
     return <StartSession profileName={profile.name} onStart={startSession} />;
   }
@@ -104,11 +125,9 @@ export function SessionPage() {
   const range = computeBacRange(inputs);
   const risk = riskFor(range.typical);
   const sober = projectedSoberAt(inputs, planToDrive ? 0.05 : 0);
-  const sessionEndsAt = active.startedAt + active.expectedHours * 60 * 60 * 1000;
   const cutoff = recommendCutoff(inputs, sessionEndsAt);
   const behind = waterBehind(active.drinks, active.water.length);
   const deficit = waterDeficit(active.drinks, active.water.length);
-  const wakeAtMs = active.wakeAtMs;
 
   const bacAtWake = wakeAtMs
     ? computeBacAt(
@@ -128,20 +147,6 @@ export function SessionPage() {
     ? drinksUntilHangover(inputs, sessionEndsAt, wakeAtMs)
     : null;
   const legalDrinksLeft = suggestedDrinksRemaining(inputs, sessionEndsAt, 1.4, 0.045);
-
-  const curve = useMemo(
-    () =>
-      bacCurve(
-        profile,
-        active.drinks,
-        active.food,
-        active.startedAt,
-        Math.max(sessionEndsAt, (wakeAtMs ?? 0) + 60_000, now + 60_000),
-        100,
-      ),
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-    [profile, active.drinks, active.food, active.startedAt, sessionEndsAt, wakeAtMs],
-  );
 
   const advisory = advisoryFor(risk, range.typical, hRisk === 'severe', planToDrive);
 

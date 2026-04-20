@@ -119,6 +119,12 @@ driving warning, "Able to Drive" threshold).
 - Top-level `AnimatePresence` wrapping causes blank-screen stuck states
   under React StrictMode when children re-render heavily. Keep mount
   animations inside each page, not at the router level.
+- `SessionPage` calls all hooks (including the `useMemo` for `curve`)
+  BEFORE the `if (!active) return <StartSession/>` early return. Moving
+  the `useMemo` below the conditional return breaks the Rules of Hooks
+  — the hook count changes on start/end, React's internal hook state
+  de-syncs, and the page goes blank until refresh. Never add new hooks
+  after that early return.
 - `computeBacAt` filters drinks by `d.at <= at`, so projecting forward
   (passing a future `at`) correctly accounts for pending absorption of
   already-logged drinks but does NOT anticipate unlogged future drinks.
