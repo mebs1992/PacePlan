@@ -134,6 +134,23 @@ export function soberAtMs(inputs: BacInputs): number | null {
   return inputs.at + hoursToZero * HOUR_MS;
 }
 
+/**
+ * Projects forward in time (stepping through future absorption) to find when
+ * BAC drops below threshold. More stable than soberAtMs during absorption
+ * because it doesn't creep upward as BAC rises — it already accounts for the
+ * full absorption curve.
+ */
+export function projectedSoberAt(inputs: BacInputs, threshold: number = 0): number | null {
+  const current = computeBacAt(inputs, BETA_TYPICAL);
+  if (current <= threshold) return null;
+  const STEP_MS = 5 * 60_000;
+  const MAX_MS = inputs.at + 24 * HOUR_MS;
+  for (let t = inputs.at + STEP_MS; t <= MAX_MS; t += STEP_MS) {
+    if (computeBacAt({ ...inputs, at: t }, BETA_TYPICAL) <= threshold) return t;
+  }
+  return null;
+}
+
 export type CutoffResult =
   | { kind: 'safe'; cutoffAt: number }
   | { kind: 'over'; bacAtSessionEnd: number }

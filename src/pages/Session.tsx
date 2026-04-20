@@ -20,9 +20,9 @@ import {
   hangoverLabel,
   hangoverRiskFor,
   peakBacInWindow,
+  projectedSoberAt,
   recommendCutoff,
   riskFor,
-  soberAtMs,
   suggestedDrinksRemaining,
   waterBehind,
   waterDeficit,
@@ -100,14 +100,14 @@ export function SessionPage() {
     food: active.food,
     at: now,
   };
+  const planToDrive = active.planToDrive ?? false;
   const range = computeBacRange(inputs);
   const risk = riskFor(range.typical);
-  const sober = soberAtMs(inputs);
+  const sober = projectedSoberAt(inputs, planToDrive ? 0.05 : 0);
   const sessionEndsAt = active.startedAt + active.expectedHours * 60 * 60 * 1000;
   const cutoff = recommendCutoff(inputs, sessionEndsAt);
   const behind = waterBehind(active.drinks, active.water.length);
   const deficit = waterDeficit(active.drinks, active.water.length);
-  const planToDrive = active.planToDrive ?? false;
   const wakeAtMs = active.wakeAtMs;
 
   const bacAtWake = wakeAtMs
@@ -254,10 +254,10 @@ export function SessionPage() {
           />
         )}
         <StatTile
-          title="SOBER BY"
-          big={sober ? formatClockWithDay(sober, now) : '—'}
-          sub="est. clearance"
-          flavor="0.00% BAC"
+          title={planToDrive ? 'ABLE TO DRIVE' : 'SOBER BY'}
+          big={sober ? formatClockWithDay(sober, now) : (planToDrive ? 'clear' : '—')}
+          sub={planToDrive ? 'est. ability to drive' : 'est. clearance'}
+          flavor={planToDrive ? 'BAC < 0.05%' : '0.00% BAC'}
         />
       </div>
 
