@@ -19,12 +19,17 @@ export function FAB({ onClick, pulse, label }: Props) {
       onClick={onClick}
       aria-label={label ?? 'Log drink, water, or food'}
       className={cn(
-        'fixed left-1/2 -translate-x-1/2 z-30 h-16 w-16 rounded-full bg-accent text-white shadow-fab flex items-center justify-center active:bg-accent/90 transition',
-        pulse && 'animate-breathe',
+        'fixed right-5 z-30 h-[60px] w-[60px] rounded-[20px] bg-ink text-white shadow-fab flex items-center justify-center active:bg-ink/90 transition',
       )}
       style={{ bottom: 'calc(5.25rem + env(safe-area-inset-bottom))' }}
     >
-      <Plus className="h-8 w-8" strokeWidth={2.5} />
+      <Plus className="h-[22px] w-[22px]" strokeWidth={2.25} />
+      {pulse && (
+        <span
+          className="absolute -top-0.5 -right-0.5 h-2.5 w-2.5 rounded-full bg-risk-yellow animate-breathe"
+          style={{ border: '2px solid #F4EFE4' }}
+        />
+      )}
     </motion.button>
   );
 }

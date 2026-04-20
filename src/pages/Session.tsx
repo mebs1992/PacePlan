@@ -8,6 +8,7 @@ import { SessionMeta } from '@/components/SessionMeta';
 import { NightCurve } from '@/components/NightCurve';
 import { AnimatedNumber } from '@/components/AnimatedNumber';
 import { TrackerSheet, type TrackerTab } from '@/components/TrackerSheet';
+import { FAB } from '@/components/FAB';
 import { ConfirmEndSheet } from '@/components/ConfirmEndSheet';
 import { useProfile } from '@/store/useProfile';
 import { useSession } from '@/store/useSession';
@@ -323,8 +324,6 @@ export function SessionPage() {
         />
       </div>
 
-      <QuickAddRow onOpen={openTracker} />
-
       <LogList
         profile={profile}
         drinks={active.drinks}
@@ -345,6 +344,8 @@ export function SessionPage() {
       <p className="font-mono text-[10px] text-ink-dim text-center -mt-1">
         estimates only. not a breathalyzer.
       </p>
+
+      <FAB onClick={() => openTracker('drink')} pulse={behind} />
 
       <TrackerSheet
         open={trackerTab !== null}
@@ -473,28 +474,6 @@ function TinyMenu({
           </>
         )}
       </AnimatePresence>
-    </div>
-  );
-}
-
-function QuickAddRow({ onOpen }: { onOpen: (tab: TrackerTab) => void }) {
-  const items: { tab: TrackerTab; label: string }[] = [
-    { tab: 'drink', label: '+ Drink' },
-    { tab: 'water', label: '+ Water' },
-    { tab: 'food', label: '+ Food' },
-  ];
-  return (
-    <div className="mt-4 grid grid-cols-3 gap-2">
-      {items.map((it) => (
-        <button
-          key={it.tab}
-          type="button"
-          onClick={() => onOpen(it.tab)}
-          className="h-11 rounded-full border border-line-2 bg-bg-card text-ink font-display text-[15px] italic hover:bg-bg-elev active:scale-[0.98] transition min-tap"
-        >
-          {it.label}
-        </button>
-      ))}
     </div>
   );
 }
