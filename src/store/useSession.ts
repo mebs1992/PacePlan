@@ -19,12 +19,18 @@ type SessionState = {
   history: Session[];
   now: number;
   justEndedId: string | null;
-  startSession: (expectedHours: number, opts?: { wakeAtMs?: number; planToDrive?: boolean }) => void;
+  startSession: (
+    expectedHours: number,
+    opts?: { wakeAtMs?: number; planToDrive?: boolean; plannedStartMs?: number },
+  ) => void;
   endSession: (peakBac: number, predictedRisk?: HangoverRisk) => string | null;
+  cancelSession: () => void;
   clearJustEnded: () => void;
   setExpectedHours: (h: number) => void;
   setWakeAt: (ms: number | undefined) => void;
   setPlanToDrive: (v: boolean) => void;
+  setPlannedStartAt: (ms: number | undefined) => void;
+  togglePrepDone: (id: string) => void;
   addDrink: (input: { type: DrinkType; label: string; standardDrinks: number }) => void;
   removeDrink: (id: string) => void;
   addFood: (size: FoodSize) => void;
@@ -55,6 +61,8 @@ export const useSession = create<SessionState>()(
           water: [],
           wakeAtMs: opts?.wakeAtMs,
           planToDrive: opts?.planToDrive ?? false,
+          plannedStartMs: opts?.plannedStartMs,
+          prepDone: [],
         };
         set({ active: session, now: Date.now() });
       },
@@ -72,6 +80,8 @@ export const useSession = create<SessionState>()(
         set({ active: null, history: next, justEndedId: ended.id });
         return ended.id;
       },
+
+      cancelSession: () => set({ active: null }),
 
       clearJustEnded: () => set({ justEndedId: null }),
 
@@ -91,6 +101,22 @@ export const useSession = create<SessionState>()(
         const { active } = get();
         if (!active) return;
         set({ active: { ...active, planToDrive: v } });
+      },
+
+      setPlannedStartAt: (ms) => {
+        const { active } = get();
+        if (!active) return;
+        set({ active: { ...active, plannedStartMs: ms } });
+      },
+
+      togglePrepDone: (id) => {
+        const { active } = get();
+        if (!active) return;
+        const done = active.prepDone ?? [];
+        const next = done.includes(id)
+          ? done.filter((x) => x !== id)
+          : [...done, id];
+        set({ active: { ...active, prepDone: next } });
       },
 
       addDrink: ({ type, label, standardDrinks }) => {

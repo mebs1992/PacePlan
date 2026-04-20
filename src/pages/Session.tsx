@@ -11,6 +11,7 @@ import { TrackerSheet, type TrackerTab } from '@/components/TrackerSheet';
 import { FAB } from '@/components/FAB';
 import { ConfirmEndSheet } from '@/components/ConfirmEndSheet';
 import { PlanCard } from '@/components/PlanCard';
+import { PreSession } from '@/components/PreSession';
 import { planNight } from '@/lib/plan';
 import { useProfile } from '@/store/useProfile';
 import { useSession } from '@/store/useSession';
@@ -27,6 +28,7 @@ import {
   projectedSoberAt,
   recommendCutoff,
   riskFor,
+  safeToDriveAt,
   suggestedDrinksRemaining,
   waterBehind,
   waterDeficit,
@@ -47,11 +49,16 @@ function advisoryFor(
   bac: number,
   hangoverSevere: boolean,
   planToDrive: boolean,
+  safeToDriveFutureMs: number | null,
 ): { text: string; color: string } {
   if (planToDrive && risk === 'red')
     return { text: 'Do not drive.', color: RISK_COLOR.red };
   if (planToDrive && risk === 'yellow')
     return { text: 'Plan a ride.', color: RISK_COLOR.yellow };
+  // Current BAC may be low while a recent drink is still absorbing. If the
+  // projected peak will cross the 0.05 limit, don't announce "safe to drive".
+  if (planToDrive && safeToDriveFutureMs !== null)
+    return { text: 'Still absorbing. Hold off.', color: RISK_COLOR.yellow };
   if (bac <= 0.001) return { text: 'Safe to drive.', color: RISK_COLOR.green };
   if (hangoverSevere)
     return { text: 'Rough morning incoming.', color: RISK_COLOR.red };
@@ -76,6 +83,9 @@ export function SessionPage() {
   const setExpectedHours = useSession((s) => s.setExpectedHours);
   const setWakeAt = useSession((s) => s.setWakeAt);
   const setPlanToDrive = useSession((s) => s.setPlanToDrive);
+  const setPlannedStartAt = useSession((s) => s.setPlannedStartAt);
+  const togglePrepDone = useSession((s) => s.togglePrepDone);
+  const cancelSession = useSession((s) => s.cancelSession);
 
   const [trackerTab, setTrackerTab] = useState<TrackerTab | null>(null);
   const [confirmEnd, setConfirmEnd] = useState(false);
@@ -94,8 +104,11 @@ export function SessionPage() {
     };
   }, [active, tickNow]);
 
+  const effectiveStart = active
+    ? (active.plannedStartMs ?? active.startedAt)
+    : 0;
   const sessionEndsAt = active
-    ? active.startedAt + active.expectedHours * 60 * 60 * 1000
+    ? effectiveStart + active.expectedHours * 60 * 60 * 1000
     : 0;
   const wakeAtMs = active?.wakeAtMs;
 
@@ -106,17 +119,52 @@ export function SessionPage() {
             profile,
             active.drinks,
             active.food,
-            active.startedAt,
+            effectiveStart,
             Math.max(sessionEndsAt, (wakeAtMs ?? 0) + 60_000, now + 60_000),
             100,
           )
         : [],
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [profile, active?.drinks, active?.food, active?.startedAt, sessionEndsAt, wakeAtMs],
+    [profile, active?.drinks, active?.food, effectiveStart, sessionEndsAt, wakeAtMs],
   );
 
   if (!active) {
     return <StartSession profile={profile} onStart={startSession} />;
+  }
+
+  if (active.plannedStartMs && now < active.plannedStartMs) {
+    const firstName = profile.name.split(' ')[0] || profile.name;
+    return (
+      <>
+        <PreSession
+          active={active}
+          now={now}
+          firstName={firstName}
+          onTogglePrepDone={togglePrepDone}
+          onSetPlannedStart={setPlannedStartAt}
+          onStartNow={() => setPlannedStartAt(Date.now())}
+          onCancel={cancelSession}
+          onLogFood={() => setTrackerTab('food')}
+          onLogWater={addWater}
+        />
+        <TrackerSheet
+          open={trackerTab !== null}
+          initialTab={trackerTab ?? 'food'}
+          onClose={() => setTrackerTab(null)}
+          drinks={active.drinks}
+          water={active.water}
+          food={active.food}
+          behind={false}
+          now={now}
+          onAddDrink={addDrink}
+          onRemoveDrink={removeDrink}
+          onAddWater={addWater}
+          onRemoveWater={removeWater}
+          onAddFood={addFood}
+          onRemoveFood={removeFood}
+        />
+      </>
+    );
   }
 
   const inputs = {
@@ -128,7 +176,9 @@ export function SessionPage() {
   const planToDrive = active.planToDrive ?? false;
   const range = computeBacRange(inputs);
   const risk = riskFor(range.typical);
-  const sober = projectedSoberAt(inputs, planToDrive ? 0.05 : 0);
+  const sober = planToDrive
+    ? safeToDriveAt(inputs, 0.05)
+    : projectedSoberAt(inputs, 0);
   const cutoff = recommendCutoff(inputs, sessionEndsAt);
   const behind = waterBehind(active.drinks, active.water.length);
   const deficit = waterDeficit(active.drinks, active.water.length);
@@ -143,7 +193,7 @@ export function SessionPage() {
     profile,
     active.drinks,
     active.food,
-    active.startedAt,
+    effectiveStart,
     Math.max(sessionEndsAt, wakeAtMs ?? sessionEndsAt),
   );
   const hRisk = hangoverRiskFor(sessionPeak, bacAtWake, deficit);
@@ -152,7 +202,13 @@ export function SessionPage() {
     : null;
   const legalDrinksLeft = suggestedDrinksRemaining(inputs, sessionEndsAt, 1.4, 0.045);
 
-  const advisory = advisoryFor(risk, range.typical, hRisk === 'severe', planToDrive);
+  const advisory = advisoryFor(
+    risk,
+    range.typical,
+    hRisk === 'severe',
+    planToDrive,
+    planToDrive ? sober : null,
+  );
 
   const dateLabel = new Date(active.startedAt)
     .toLocaleDateString(undefined, {
@@ -238,7 +294,7 @@ export function SessionPage() {
           risk={risk}
           curve={curve}
           now={now}
-          sessionStart={active.startedAt}
+          sessionStart={effectiveStart}
           sessionEnd={sessionEndsAt}
           wakeAt={wakeAtMs}
           peak={sessionPeak}
@@ -318,7 +374,7 @@ export function SessionPage() {
 
       <div className="mt-3">
         <SessionMeta
-          startedAt={active.startedAt}
+          startedAt={effectiveStart}
           expectedHours={active.expectedHours}
           wakeAtMs={wakeAtMs}
           now={now}
@@ -376,7 +432,7 @@ export function SessionPage() {
           profile,
           active.drinks,
           active.food,
-          active.startedAt,
+          effectiveStart,
           Date.now(),
         )}
         onConfirm={() => {
@@ -384,7 +440,7 @@ export function SessionPage() {
             profile,
             active.drinks,
             active.food,
-            active.startedAt,
+            effectiveStart,
             Date.now(),
           );
           setConfirmEnd(false);
@@ -628,7 +684,10 @@ function StartSession({
   onStart,
 }: {
   profile: Profile;
-  onStart: (h: number, opts?: { wakeAtMs?: number; planToDrive?: boolean }) => void;
+  onStart: (
+    h: number,
+    opts?: { wakeAtMs?: number; planToDrive?: boolean; plannedStartMs?: number },
+  ) => void;
 }) {
   const [hours, setHours] = useState(4);
   const [wakeDraft, setWakeDraft] = useState(() => {
@@ -644,6 +703,22 @@ function StartSession({
   const [driving, setDriving] = useState(false);
   const [planBaseline] = useState(() => Date.now());
 
+  const [startLater, setStartLater] = useState(false);
+  const [startDraft, setStartDraft] = useState(() => {
+    const d = new Date();
+    d.setHours(d.getHours() + 2, 0, 0, 0);
+    const pad = (n: number) => String(n).padStart(2, '0');
+    return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(
+      d.getHours(),
+    )}:${pad(d.getMinutes())}`;
+  });
+
+  const plannedStartMs = useMemo(() => {
+    if (!startLater) return undefined;
+    const n = new Date(startDraft).getTime();
+    return Number.isFinite(n) && n > Date.now() ? n : undefined;
+  }, [startLater, startDraft]);
+
   const wakeMs = useMemo(() => {
     const n = new Date(wakeDraft).getTime();
     return Number.isFinite(n) ? n : undefined;
@@ -653,12 +728,12 @@ function StartSession({
     () =>
       planNight({
         profile,
-        plannedStartMs: planBaseline,
+        plannedStartMs: plannedStartMs ?? planBaseline,
         expectedHours: hours,
         wakeAtMs: useWake ? wakeMs : undefined,
         driving,
       }),
-    [profile, planBaseline, hours, useWake, wakeMs, driving],
+    [profile, plannedStartMs, planBaseline, hours, useWake, wakeMs, driving],
   );
 
   const today = new Date()
@@ -710,6 +785,43 @@ function StartSession({
             <span>1h</span>
             <span>6h</span>
             <span>12h</span>
+          </div>
+
+          <div className="mt-6 text-left">
+            <div className="flex items-center justify-between">
+              <label className="text-sm font-semibold text-ink">Start drinking</label>
+              <button
+                type="button"
+                onClick={() => setStartLater((v) => !v)}
+                className="font-mono text-[11px] text-accent uppercase tracking-wider hover:underline underline-offset-2"
+              >
+                {startLater ? 'Start now' : 'Pick a time'}
+              </button>
+            </div>
+            {startLater ? (
+              <>
+                <input
+                  type="datetime-local"
+                  value={startDraft}
+                  onChange={(e) => setStartDraft(e.target.value)}
+                  className="w-full h-11 px-3 mt-2 rounded-xl bg-bg-card border border-line text-ink focus:border-accent focus:outline-none focus:ring-4 focus:ring-accent/15"
+                />
+                {plannedStartMs ? (
+                  <div className="mt-2 font-mono text-[10px] text-ink-dim leading-snug">
+                    We'll open a pre-game checklist until then — eat, hydrate,
+                    plan a ride, etc.
+                  </div>
+                ) : (
+                  <div className="mt-2 font-mono text-[10px] text-risk-red leading-snug">
+                    Pick a future time, or switch to "Start now".
+                  </div>
+                )}
+              </>
+            ) : (
+              <div className="mt-2 font-display italic text-ink-dim text-sm">
+                Right now — jumps straight into tracking.
+              </div>
+            )}
           </div>
 
           <div className="mt-6 text-left">
@@ -774,14 +886,16 @@ function StartSession({
           <Button
             className="w-full mt-6 font-display italic text-[20px]"
             size="lg"
+            disabled={startLater && !plannedStartMs}
             onClick={() =>
               onStart(hours, {
                 wakeAtMs: useWake ? wakeMs : undefined,
                 planToDrive: driving,
+                plannedStartMs,
               })
             }
           >
-            Start the night
+            {plannedStartMs ? 'Prep the night' : 'Start the night'}
           </Button>
         </Card>
       </motion.div>

@@ -151,6 +151,37 @@ export function projectedSoberAt(inputs: BacInputs, threshold: number = 0): numb
   return null;
 }
 
+/**
+ * Time when projected BAC is below `threshold` AND will remain below for the
+ * rest of the projection window, given currently-logged drinks. Unlike
+ * `projectedSoberAt`, this does NOT early-return when current BAC is already
+ * below the threshold — it still looks forward in case pending absorption is
+ * about to push BAC above it. Used for "Able to Drive" so we don't tell the
+ * user they're clear seconds after a drink that hasn't peaked yet.
+ */
+export function safeToDriveAt(
+  inputs: BacInputs,
+  threshold: number = 0.05
+): number | null {
+  if (inputs.drinks.length === 0) return null;
+  const STEP_MS = 5 * 60_000;
+  let lastDrinkAt = inputs.drinks[0].at;
+  for (const d of inputs.drinks) if (d.at > lastDrinkAt) lastDrinkAt = d.at;
+  // BAC peaks within the absorption window (≤75m) after the last drink, then
+  // decays monotonically. 24h past that guarantees we find the crossover.
+  const MAX_MS = lastDrinkAt + 24 * HOUR_MS;
+
+  let lastOverAt: number | null = null;
+  const currentBac = computeBacAt(inputs, BETA_TYPICAL);
+  if (currentBac > threshold) lastOverAt = inputs.at;
+
+  for (let t = inputs.at + STEP_MS; t <= MAX_MS; t += STEP_MS) {
+    const bac = computeBacAt({ ...inputs, at: t }, BETA_TYPICAL);
+    if (bac > threshold) lastOverAt = t;
+  }
+  return lastOverAt === null ? null : lastOverAt + STEP_MS;
+}
+
 export type CutoffResult =
   | { kind: 'safe'; cutoffAt: number }
   | { kind: 'over'; bacAtSessionEnd: number }
