@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Onboarding } from '@/pages/Onboarding';
 import { SessionPage } from '@/pages/Session';
 import { HistoryPage } from '@/pages/History';
@@ -7,7 +7,6 @@ import { MorningRecap } from '@/components/MorningRecap';
 import { useProfile } from '@/store/useProfile';
 import { useSession } from '@/store/useSession';
 import { Beer, History, Settings as SettingsIcon } from 'lucide-react';
-import { motion, AnimatePresence } from 'framer-motion';
 
 type View = 'session' | 'history' | 'settings';
 
@@ -15,59 +14,30 @@ export default function App() {
   const profile = useProfile((s) => s.profile);
   const [view, setView] = useState<View>('session');
   const [recapId, setRecapId] = useState<string | null>(null);
-  const skippedRef = useRef<Set<string>>(new Set());
-  const pendingRecapId = useSession((s) => s.pendingRecapId);
-  const historyLen = useSession((s) => s.history.length);
+  const justEndedId = useSession((s) => s.justEndedId);
+  const clearJustEnded = useSession((s) => s.clearJustEnded);
 
   useEffect(() => {
-    if (!profile) return;
-    const check = () => {
-      const id = pendingRecapId();
-      if (id && !skippedRef.current.has(id)) setRecapId(id);
-    };
-    check();
-    const onFocus = () => check();
-    window.addEventListener('focus', onFocus);
-    document.addEventListener('visibilitychange', onFocus);
-    const interval = window.setInterval(check, 60_000);
-    return () => {
-      window.removeEventListener('focus', onFocus);
-      document.removeEventListener('visibilitychange', onFocus);
-      window.clearInterval(interval);
-    };
-  }, [profile, pendingRecapId, historyLen]);
+    if (justEndedId) {
+      setRecapId(justEndedId);
+      clearJustEnded();
+    }
+  }, [justEndedId, clearJustEnded]);
 
   if (!profile) return <Onboarding />;
 
   function dismissRecap() {
-    if (recapId) skippedRef.current = new Set(skippedRef.current).add(recapId);
     setRecapId(null);
     setView('session');
   }
 
   return (
     <div className="min-h-full">
-      <AnimatePresence initial={false}>
-        <motion.div
-          key={view}
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          exit={{ opacity: 0 }}
-          transition={{ duration: 0.18 }}
-          style={{ minHeight: '100%' }}
-        >
-          {view === 'session' && <SessionPage />}
-          {view === 'history' && <HistoryPage onOpenRecap={setRecapId} />}
-          {view === 'settings' && <SettingsPage />}
-        </motion.div>
-      </AnimatePresence>
+      {view === 'session' && <SessionPage />}
+      {view === 'history' && <HistoryPage onOpenRecap={setRecapId} />}
+      {view === 'settings' && <SettingsPage />}
       <BottomNav view={view} onChange={setView} />
-      {recapId && (
-        <MorningRecap
-          sessionId={recapId}
-          onDismiss={dismissRecap}
-        />
-      )}
+      {recapId && <MorningRecap sessionId={recapId} onDismiss={dismissRecap} />}
     </div>
   );
 }
