@@ -2,13 +2,14 @@ import { useEffect, useState } from 'react';
 import { Onboarding } from '@/pages/Onboarding';
 import { SessionPage } from '@/pages/Session';
 import { HistoryPage } from '@/pages/History';
+import { InsightsPage } from '@/pages/Insights';
 import { SettingsPage } from '@/pages/Settings';
 import { MorningRecap } from '@/components/MorningRecap';
 import { useProfile } from '@/store/useProfile';
 import { useSession } from '@/store/useSession';
-import { Beer, History, Settings as SettingsIcon } from 'lucide-react';
+import { Beer, History, Sparkles, Settings as SettingsIcon } from 'lucide-react';
 
-type View = 'session' | 'history' | 'settings';
+type View = 'session' | 'history' | 'insights' | 'settings';
 
 export default function App() {
   const profile = useProfile((s) => s.profile);
@@ -35,6 +36,7 @@ export default function App() {
     <div className="min-h-full">
       {view === 'session' && <SessionPage />}
       {view === 'history' && <HistoryPage onOpenRecap={setRecapId} />}
+      {view === 'insights' && <InsightsPage />}
       {view === 'settings' && <SettingsPage />}
       <BottomNav view={view} onChange={setView} />
       {recapId && <MorningRecap sessionId={recapId} onDismiss={dismissRecap} />}
@@ -46,6 +48,7 @@ function BottomNav({ view, onChange }: { view: View; onChange: (v: View) => void
   const items: { key: View; label: string; icon: React.ReactNode }[] = [
     { key: 'session', label: 'Session', icon: <Beer className="h-[22px] w-[22px]" strokeWidth={2} /> },
     { key: 'history', label: 'History', icon: <History className="h-[22px] w-[22px]" strokeWidth={2} /> },
+    { key: 'insights', label: 'Insights', icon: <Sparkles className="h-[22px] w-[22px]" strokeWidth={2} /> },
     { key: 'settings', label: 'Settings', icon: <SettingsIcon className="h-[22px] w-[22px]" strokeWidth={2} /> },
   ];
   return (
