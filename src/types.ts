@@ -67,6 +67,11 @@ export type Session = {
   wakeAtMs?: number;
   planToDrive?: boolean;
   recap?: HangoverRecap;
+  /** When drinking is planned to start. If > startedAt and > now, the
+   *  session is in pre-drinking mode. */
+  plannedStartMs?: number;
+  /** IDs of prep tips the user has manually ticked off during pre-drinking. */
+  prepDone?: string[];
 };
 
 export type RiskLevel = 'green' | 'yellow' | 'red';
