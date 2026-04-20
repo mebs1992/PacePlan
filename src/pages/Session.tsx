@@ -10,8 +10,11 @@ import { AnimatedNumber } from '@/components/AnimatedNumber';
 import { TrackerSheet, type TrackerTab } from '@/components/TrackerSheet';
 import { FAB } from '@/components/FAB';
 import { ConfirmEndSheet } from '@/components/ConfirmEndSheet';
+import { PlanCard } from '@/components/PlanCard';
+import { planNight } from '@/lib/plan';
 import { useProfile } from '@/store/useProfile';
 import { useSession } from '@/store/useSession';
+import type { Profile } from '@/types';
 import {
   BETA_TYPICAL,
   bacCurve,
@@ -113,7 +116,7 @@ export function SessionPage() {
   );
 
   if (!active) {
-    return <StartSession profileName={profile.name} onStart={startSession} />;
+    return <StartSession profile={profile} onStart={startSession} />;
   }
 
   const inputs = {
@@ -621,10 +624,10 @@ function StatTile({
 }
 
 function StartSession({
-  profileName,
+  profile,
   onStart,
 }: {
-  profileName: string;
+  profile: Profile;
   onStart: (h: number, opts?: { wakeAtMs?: number; planToDrive?: boolean }) => void;
 }) {
   const [hours, setHours] = useState(4);
@@ -639,11 +642,24 @@ function StartSession({
   });
   const [useWake, setUseWake] = useState(true);
   const [driving, setDriving] = useState(false);
+  const [planBaseline] = useState(() => Date.now());
 
   const wakeMs = useMemo(() => {
     const n = new Date(wakeDraft).getTime();
     return Number.isFinite(n) ? n : undefined;
   }, [wakeDraft]);
+
+  const plan = useMemo(
+    () =>
+      planNight({
+        profile,
+        plannedStartMs: planBaseline,
+        expectedHours: hours,
+        wakeAtMs: useWake ? wakeMs : undefined,
+        driving,
+      }),
+    [profile, planBaseline, hours, useWake, wakeMs, driving],
+  );
 
   const today = new Date()
     .toLocaleDateString(undefined, {
@@ -652,7 +668,7 @@ function StartSession({
       day: 'numeric',
     })
     .toUpperCase();
-  const firstName = profileName.split(' ')[0] || profileName;
+  const firstName = profile.name.split(' ')[0] || profile.name;
 
   return (
     <div className="max-w-md mx-auto px-5 pt-8 pb-28">
@@ -769,6 +785,8 @@ function StartSession({
           </Button>
         </Card>
       </motion.div>
+
+      <PlanCard plan={plan} now={planBaseline} />
 
       <p className="font-mono text-[10px] text-ink-dim text-center mt-4 uppercase tracking-wider">
         Estimates only. Never drive after drinking.
