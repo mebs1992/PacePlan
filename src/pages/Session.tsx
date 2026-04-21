@@ -36,7 +36,7 @@ import {
 import { formatClockWithDay } from '@/lib/time';
 import type { DrinkEntry, FoodEntry, RiskLevel, WaterEntry } from '@/types';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Car, Moon } from 'lucide-react';
+import { Car, Clock, Moon, Zap } from 'lucide-react';
 
 const RISK_COLOR: Record<RiskLevel, string> = {
   green: '#3A5E4C',
@@ -787,15 +787,38 @@ function StartSession({
             <span>12h</span>
           </div>
 
-          <div className="mt-6 text-left">
-            <div className="flex items-center justify-between">
-              <label className="text-sm font-semibold text-ink">Start drinking</label>
+          <div className="mt-6 text-left rounded-2xl border border-line bg-bg-elev p-4">
+            <label className="text-sm font-semibold text-ink">
+              When do you start drinking?
+            </label>
+            <div className="mt-2 grid grid-cols-2 gap-2">
               <button
                 type="button"
-                onClick={() => setStartLater((v) => !v)}
-                className="font-mono text-[11px] text-accent uppercase tracking-wider hover:underline underline-offset-2"
+                onClick={() => setStartLater(false)}
+                className={`h-11 rounded-xl text-sm font-semibold min-tap transition-all ${
+                  !startLater
+                    ? 'bg-ink text-white'
+                    : 'bg-bg-card border border-line text-ink-muted'
+                }`}
               >
-                {startLater ? 'Start now' : 'Pick a time'}
+                <span className="inline-flex items-center gap-1.5">
+                  <Zap className="h-3.5 w-3.5" />
+                  Right now
+                </span>
+              </button>
+              <button
+                type="button"
+                onClick={() => setStartLater(true)}
+                className={`h-11 rounded-xl text-sm font-semibold min-tap transition-all ${
+                  startLater
+                    ? 'bg-accent text-white'
+                    : 'bg-bg-card border border-line text-ink-muted'
+                }`}
+              >
+                <span className="inline-flex items-center gap-1.5">
+                  <Clock className="h-3.5 w-3.5" />
+                  Set a time
+                </span>
               </button>
             </div>
             {startLater ? (
@@ -804,22 +827,22 @@ function StartSession({
                   type="datetime-local"
                   value={startDraft}
                   onChange={(e) => setStartDraft(e.target.value)}
-                  className="w-full h-11 px-3 mt-2 rounded-xl bg-bg-card border border-line text-ink focus:border-accent focus:outline-none focus:ring-4 focus:ring-accent/15"
+                  className="w-full h-11 px-3 mt-3 rounded-xl bg-bg-card border border-line text-ink focus:border-accent focus:outline-none focus:ring-4 focus:ring-accent/15"
                 />
                 {plannedStartMs ? (
                   <div className="mt-2 font-mono text-[10px] text-ink-dim leading-snug">
-                    We'll open a pre-game checklist until then — eat, hydrate,
-                    plan a ride, etc.
+                    Until then you'll get a live pre-game checklist — eat,
+                    hydrate, plan a ride, etc.
                   </div>
                 ) : (
                   <div className="mt-2 font-mono text-[10px] text-risk-red leading-snug">
-                    Pick a future time, or switch to "Start now".
+                    Pick a future time, or switch to "Right now".
                   </div>
                 )}
               </>
             ) : (
-              <div className="mt-2 font-display italic text-ink-dim text-sm">
-                Right now — jumps straight into tracking.
+              <div className="mt-2 font-mono text-[10px] text-ink-dim leading-snug">
+                Jumps straight into BAC tracking.
               </div>
             )}
           </div>
