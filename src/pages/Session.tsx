@@ -24,6 +24,7 @@ import {
   drinksUntilHangover,
   hangoverLabel,
   hangoverRiskFor,
+  finalSessionPeak,
   peakBacInWindow,
   projectedSoberAt,
   recommendCutoff,
@@ -428,15 +429,15 @@ export function SessionPage() {
         onClose={() => setConfirmEnd(false)}
         duration={Math.max(0, now - active.startedAt)}
         drinks={active.drinks.length}
-        peak={peakBacInWindow(
+        peak={finalSessionPeak(
           profile,
           active.drinks,
           active.food,
           effectiveStart,
-          Date.now(),
+          now,
         )}
         onConfirm={() => {
-          const peak = peakBacInWindow(
+          const peak = finalSessionPeak(
             profile,
             active.drinks,
             active.food,

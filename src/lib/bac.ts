@@ -425,3 +425,24 @@ export function peakBacInWindow(
   }
   return peak;
 }
+
+/**
+ * Peak BAC for the whole night, guaranteed to include pending absorption past
+ * `now`. Sampling only up to `now` (as `peakBacInWindow(..., fromMs, now)`
+ * does) misses the real peak when the user ends their session right after a
+ * drink — BAC hasn't fully absorbed yet. Extends the window to 90 min past
+ * the last drink so the post-absorption maximum is captured.
+ */
+export function finalSessionPeak(
+  profile: Profile,
+  drinks: DrinkEntry[],
+  food: FoodEntry[],
+  sessionStart: number,
+  now: number
+): number {
+  if (drinks.length === 0) return 0;
+  let lastDrinkAt = drinks[0].at;
+  for (const d of drinks) if (d.at > lastDrinkAt) lastDrinkAt = d.at;
+  const toMs = Math.max(now, lastDrinkAt + 90 * 60_000);
+  return peakBacInWindow(profile, drinks, food, sessionStart, toMs);
+}
