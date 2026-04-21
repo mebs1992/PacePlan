@@ -24,6 +24,7 @@ import {
   drinksUntilHangover,
   hangoverLabel,
   hangoverRiskFor,
+  finalSessionPeak,
   peakBacInWindow,
   projectedSoberAt,
   recommendCutoff,
@@ -36,7 +37,7 @@ import {
 import { formatClockWithDay } from '@/lib/time';
 import type { DrinkEntry, FoodEntry, RiskLevel, WaterEntry } from '@/types';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Car, Moon } from 'lucide-react';
+import { Car, Clock, Moon, Zap } from 'lucide-react';
 
 const RISK_COLOR: Record<RiskLevel, string> = {
   green: '#3A5E4C',
@@ -428,15 +429,15 @@ export function SessionPage() {
         onClose={() => setConfirmEnd(false)}
         duration={Math.max(0, now - active.startedAt)}
         drinks={active.drinks.length}
-        peak={peakBacInWindow(
+        peak={finalSessionPeak(
           profile,
           active.drinks,
           active.food,
           effectiveStart,
-          Date.now(),
+          now,
         )}
         onConfirm={() => {
-          const peak = peakBacInWindow(
+          const peak = finalSessionPeak(
             profile,
             active.drinks,
             active.food,
@@ -464,29 +465,26 @@ function TinyMenu({
       <button
         type="button"
         onClick={() => setOpen((v) => !v)}
-        aria-label="menu"
+        aria-label={planToDrive ? 'Driving mode on — menu' : 'Night mode on — menu'}
         aria-expanded={open}
-        className="relative h-[42px] w-[42px] rounded-[14px] border border-line bg-bg-card flex items-center justify-center text-ink hover:bg-bg-elev transition"
+        className={`relative h-auto min-h-[42px] px-2.5 py-1.5 rounded-[14px] border flex items-center gap-1.5 transition ${
+          planToDrive
+            ? 'bg-risk-red/10 border-risk-red/40 text-risk-red hover:bg-risk-red/15'
+            : 'bg-bg-card border-line text-ink hover:bg-bg-elev'
+        }`}
       >
-        <svg
-          width="16"
-          height="16"
-          viewBox="0 0 24 24"
-          fill="none"
-          stroke="currentColor"
-          strokeWidth="1.6"
-          strokeLinecap="round"
-        >
-          <circle cx="5" cy="12" r="1" />
-          <circle cx="12" cy="12" r="1" />
-          <circle cx="19" cy="12" r="1" />
-        </svg>
-        {planToDrive && (
-          <span
-            className="absolute -top-1 -right-1 h-2.5 w-2.5 rounded-full bg-risk-red"
-            style={{ border: '2px solid #F4EFE4' }}
-          />
+        {planToDrive ? (
+          <Car className="h-[18px] w-[18px]" strokeWidth={2} />
+        ) : (
+          <Moon className="h-[18px] w-[18px]" strokeWidth={1.8} />
         )}
+        <span
+          className={`font-mono text-[10px] uppercase tracking-[0.14em] ${
+            planToDrive ? 'text-risk-red' : 'text-ink-dim'
+          }`}
+        >
+          {planToDrive ? 'Drive' : 'Night'}
+        </span>
       </button>
       <AnimatePresence>
         {open && (
@@ -787,15 +785,38 @@ function StartSession({
             <span>12h</span>
           </div>
 
-          <div className="mt-6 text-left">
-            <div className="flex items-center justify-between">
-              <label className="text-sm font-semibold text-ink">Start drinking</label>
+          <div className="mt-6 text-left rounded-2xl border border-line bg-bg-elev p-4">
+            <label className="text-sm font-semibold text-ink">
+              When do you start drinking?
+            </label>
+            <div className="mt-2 grid grid-cols-2 gap-2">
               <button
                 type="button"
-                onClick={() => setStartLater((v) => !v)}
-                className="font-mono text-[11px] text-accent uppercase tracking-wider hover:underline underline-offset-2"
+                onClick={() => setStartLater(false)}
+                className={`h-11 rounded-xl text-sm font-semibold min-tap transition-all ${
+                  !startLater
+                    ? 'bg-ink text-white'
+                    : 'bg-bg-card border border-line text-ink-muted'
+                }`}
               >
-                {startLater ? 'Start now' : 'Pick a time'}
+                <span className="inline-flex items-center gap-1.5">
+                  <Zap className="h-3.5 w-3.5" />
+                  Right now
+                </span>
+              </button>
+              <button
+                type="button"
+                onClick={() => setStartLater(true)}
+                className={`h-11 rounded-xl text-sm font-semibold min-tap transition-all ${
+                  startLater
+                    ? 'bg-accent text-white'
+                    : 'bg-bg-card border border-line text-ink-muted'
+                }`}
+              >
+                <span className="inline-flex items-center gap-1.5">
+                  <Clock className="h-3.5 w-3.5" />
+                  Set a time
+                </span>
               </button>
             </div>
             {startLater ? (
@@ -804,22 +825,22 @@ function StartSession({
                   type="datetime-local"
                   value={startDraft}
                   onChange={(e) => setStartDraft(e.target.value)}
-                  className="w-full h-11 px-3 mt-2 rounded-xl bg-bg-card border border-line text-ink focus:border-accent focus:outline-none focus:ring-4 focus:ring-accent/15"
+                  className="w-full h-11 px-3 mt-3 rounded-xl bg-bg-card border border-line text-ink focus:border-accent focus:outline-none focus:ring-4 focus:ring-accent/15"
                 />
                 {plannedStartMs ? (
                   <div className="mt-2 font-mono text-[10px] text-ink-dim leading-snug">
-                    We'll open a pre-game checklist until then — eat, hydrate,
-                    plan a ride, etc.
+                    Until then you'll get a live pre-game checklist — eat,
+                    hydrate, plan a ride, etc.
                   </div>
                 ) : (
                   <div className="mt-2 font-mono text-[10px] text-risk-red leading-snug">
-                    Pick a future time, or switch to "Start now".
+                    Pick a future time, or switch to "Right now".
                   </div>
                 )}
               </>
             ) : (
-              <div className="mt-2 font-display italic text-ink-dim text-sm">
-                Right now — jumps straight into tracking.
+              <div className="mt-2 font-mono text-[10px] text-ink-dim leading-snug">
+                Jumps straight into BAC tracking.
               </div>
             )}
           </div>
