@@ -464,29 +464,26 @@ function TinyMenu({
       <button
         type="button"
         onClick={() => setOpen((v) => !v)}
-        aria-label="menu"
+        aria-label={planToDrive ? 'Driving mode on — menu' : 'Night mode on — menu'}
         aria-expanded={open}
-        className="relative h-[42px] w-[42px] rounded-[14px] border border-line bg-bg-card flex items-center justify-center text-ink hover:bg-bg-elev transition"
+        className={`relative h-auto min-h-[42px] px-2.5 py-1.5 rounded-[14px] border flex items-center gap-1.5 transition ${
+          planToDrive
+            ? 'bg-risk-red/10 border-risk-red/40 text-risk-red hover:bg-risk-red/15'
+            : 'bg-bg-card border-line text-ink hover:bg-bg-elev'
+        }`}
       >
-        <svg
-          width="16"
-          height="16"
-          viewBox="0 0 24 24"
-          fill="none"
-          stroke="currentColor"
-          strokeWidth="1.6"
-          strokeLinecap="round"
-        >
-          <circle cx="5" cy="12" r="1" />
-          <circle cx="12" cy="12" r="1" />
-          <circle cx="19" cy="12" r="1" />
-        </svg>
-        {planToDrive && (
-          <span
-            className="absolute -top-1 -right-1 h-2.5 w-2.5 rounded-full bg-risk-red"
-            style={{ border: '2px solid #F4EFE4' }}
-          />
+        {planToDrive ? (
+          <Car className="h-[18px] w-[18px]" strokeWidth={2} />
+        ) : (
+          <Moon className="h-[18px] w-[18px]" strokeWidth={1.8} />
         )}
+        <span
+          className={`font-mono text-[10px] uppercase tracking-[0.14em] ${
+            planToDrive ? 'text-risk-red' : 'text-ink-dim'
+          }`}
+        >
+          {planToDrive ? 'Drive' : 'Night'}
+        </span>
       </button>
       <AnimatePresence>
         {open && (
