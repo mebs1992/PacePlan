@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { HomePage } from '@/pages/Home';
 import { Onboarding } from '@/pages/Onboarding';
 import { SessionPage } from '@/pages/Session';
 import { HistoryPage } from '@/pages/History';
@@ -7,16 +8,25 @@ import { SettingsPage } from '@/pages/Settings';
 import { MorningRecap } from '@/components/MorningRecap';
 import { useProfile } from '@/store/useProfile';
 import { useSession } from '@/store/useSession';
-import { Beer, History, Sparkles, Settings as SettingsIcon } from 'lucide-react';
+import { Beer, History, House, Sparkles, Settings as SettingsIcon } from 'lucide-react';
 
-type View = 'session' | 'history' | 'insights' | 'settings';
+type View = 'home' | 'session' | 'history' | 'insights' | 'settings';
 
 export default function App() {
   const profile = useProfile((s) => s.profile);
-  const [view, setView] = useState<View>('session');
+  const active = useSession((s) => s.active);
+  const [view, setView] = useState<View>(() => (active ? 'session' : 'home'));
   const [recapId, setRecapId] = useState<string | null>(null);
   const justEndedId = useSession((s) => s.justEndedId);
   const clearJustEnded = useSession((s) => s.clearJustEnded);
+
+  useEffect(() => {
+    setView((current) => {
+      if (active && current === 'home') return 'session';
+      if (!active && current === 'session') return 'home';
+      return current;
+    });
+  }, [active]);
 
   useEffect(() => {
     if (justEndedId) {
@@ -34,6 +44,7 @@ export default function App() {
 
   return (
     <div className="min-h-full">
+      {view === 'home' && <HomePage onOpenSession={() => setView('session')} onOpenInsights={() => setView('insights')} />}
       {view === 'session' && <SessionPage />}
       {view === 'history' && <HistoryPage onOpenRecap={setRecapId} />}
       {view === 'insights' && <InsightsPage />}
@@ -46,6 +57,7 @@ export default function App() {
 
 function BottomNav({ view, onChange }: { view: View; onChange: (v: View) => void }) {
   const items: { key: View; label: string; icon: React.ReactNode }[] = [
+    { key: 'home', label: 'Home', icon: <House className="h-[20px] w-[20px]" strokeWidth={2} /> },
     { key: 'session', label: 'Session', icon: <Beer className="h-[22px] w-[22px]" strokeWidth={2} /> },
     { key: 'history', label: 'History', icon: <History className="h-[22px] w-[22px]" strokeWidth={2} /> },
     { key: 'insights', label: 'Insights', icon: <Sparkles className="h-[22px] w-[22px]" strokeWidth={2} /> },
@@ -63,7 +75,7 @@ function BottomNav({ view, onChange }: { view: View; onChange: (v: View) => void
             <button
               key={it.key}
               onClick={() => onChange(it.key)}
-              className="relative flex-1 flex flex-col items-center justify-center gap-1 py-2.5 min-tap"
+              className="relative flex-1 flex flex-col items-center justify-center gap-1 py-2 min-tap"
               aria-current={active ? 'page' : undefined}
             >
               <div
@@ -72,7 +84,7 @@ function BottomNav({ view, onChange }: { view: View; onChange: (v: View) => void
                 {it.icon}
               </div>
               <span
-                className={`font-mono text-[10px] tracking-[0.12em] uppercase transition-colors ${
+                className={`font-mono text-[9px] tracking-[0.11em] uppercase transition-colors ${
                   active ? 'text-accent' : 'text-ink-dim'
                 }`}
               >
