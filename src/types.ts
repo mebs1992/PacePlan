@@ -1,12 +1,48 @@
 export type Sex = 'male' | 'female';
 
+export type DrinkingFrequency =
+  | 'rarely'
+  | 'one_two_nights'
+  | 'three_four_nights'
+  | 'most_days';
+
+export type TypicalDrinksBand =
+  | 'two_three'
+  | 'four_six'
+  | 'seven_ten'
+  | 'ten_plus';
+
+export type MorningFeel =
+  | 'fine'
+  | 'slightly_off'
+  | 'pretty_rough'
+  | 'ruined';
+
+export type SleepQuality = 'great' | 'okay' | 'poor';
+
+export type HydrationHabit =
+  | 'under_1l'
+  | 'one_two_l'
+  | 'two_three_l'
+  | 'three_plus_l';
+
+export type PersonalBaseline = {
+  frequency: DrinkingFrequency;
+  typicalDrinks: TypicalDrinksBand;
+  morningFeel: MorningFeel;
+  sleepQuality: SleepQuality;
+  hydrationHabit: HydrationHabit;
+  completedAt: number;
+};
+
 export type Profile = {
   name: string;
   sex: Sex;
-  heightCm: number;
   weightKg: number;
-  age: number;
+  heightCm?: number;
+  age?: number;
   acceptedDisclaimerAt: number;
+  baseline?: PersonalBaseline;
 };
 
 export type DrinkType =
@@ -58,10 +94,12 @@ export type Session = {
   id: string;
   startedAt: number;
   expectedHours: number;
+  plannedDrinkCap?: number;
   endedAt?: number;
   drinks: DrinkEntry[];
   food: FoodEntry[];
   water: WaterEntry[];
+  capBreachAttempts?: number;
   peakBac?: number;
   predictedRisk?: HangoverRisk;
   wakeAtMs?: number;

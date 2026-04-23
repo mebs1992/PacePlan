@@ -28,6 +28,44 @@ export type NightPlan = {
   peakCap: number;
 };
 
+export function buildDrinkTargetOptions(
+  suggestedCap: number,
+  plannerCap: number,
+  maxOptions = 4,
+): number[] {
+  const safePlannerCap = Math.max(0, Math.round(plannerCap));
+  const safeSuggestedCap = Math.max(
+    0,
+    Math.min(safePlannerCap, Math.round(suggestedCap)),
+  );
+  const limit = Math.min(maxOptions, safePlannerCap + 1);
+
+  if (safePlannerCap === 0) return [0];
+
+  const selected = new Set<number>([safeSuggestedCap, safePlannerCap]);
+  const priority = [
+    safeSuggestedCap - 1,
+    safeSuggestedCap + 1,
+    0,
+    safeSuggestedCap - 2,
+    safeSuggestedCap + 2,
+    safePlannerCap - 1,
+    1,
+  ];
+
+  for (const candidate of priority) {
+    if (
+      selected.size < limit &&
+      candidate >= 0 &&
+      candidate <= safePlannerCap
+    ) {
+      selected.add(candidate);
+    }
+  }
+
+  return Array.from(selected).sort((a, b) => a - b);
+}
+
 function plannedMeal(plannedStartMs: number): FoodEntry {
   return {
     id: 'plan-meal',

@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
-import { Card } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
+import { Sheet } from '@/components/ui/Sheet';
 import { WaterAlert } from '@/components/WaterAlert';
 import { CutoffBanner } from '@/components/CutoffBanner';
 import { HangoverCard } from '@/components/HangoverCard';
@@ -10,12 +10,15 @@ import { AnimatedNumber } from '@/components/AnimatedNumber';
 import { TrackerSheet, type TrackerTab } from '@/components/TrackerSheet';
 import { FAB } from '@/components/FAB';
 import { ConfirmEndSheet } from '@/components/ConfirmEndSheet';
-import { PlanCard } from '@/components/PlanCard';
+import { PlanTonight } from '@/components/PlanTonight';
 import { PreSession } from '@/components/PreSession';
-import { planNight } from '@/lib/plan';
+import {
+  drinkCapRemaining,
+  hasDrinkCap,
+} from '@/lib/drinkCap';
 import { useProfile } from '@/store/useProfile';
 import { useSession } from '@/store/useSession';
-import type { Profile } from '@/types';
+import type { DrinkType, Profile } from '@/types';
 import {
   BETA_TYPICAL,
   bacCurve,
@@ -37,7 +40,7 @@ import {
 import { formatClockWithDay } from '@/lib/time';
 import type { DrinkEntry, FoodEntry, RiskLevel, WaterEntry } from '@/types';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Car, Clock, Moon, Zap } from 'lucide-react';
+import { Car, Droplets, Moon, Target } from 'lucide-react';
 
 const RISK_COLOR: Record<RiskLevel, string> = {
   green: '#3A5E4C',
@@ -68,6 +71,14 @@ function advisoryFor(
   return { text: 'Pacing well.', color: RISK_COLOR.green };
 }
 
+type PendingDrink = {
+  type: DrinkType;
+  label: string;
+  standardDrinks: number;
+};
+
+type CapPromptMode = 'pause' | 'confirm';
+
 export function SessionPage() {
   const profile = useProfile((s) => s.profile)!;
   const active = useSession((s) => s.active);
@@ -85,11 +96,14 @@ export function SessionPage() {
   const setWakeAt = useSession((s) => s.setWakeAt);
   const setPlanToDrive = useSession((s) => s.setPlanToDrive);
   const setPlannedStartAt = useSession((s) => s.setPlannedStartAt);
+  const markCapBreachAttempt = useSession((s) => s.markCapBreachAttempt);
   const togglePrepDone = useSession((s) => s.togglePrepDone);
   const cancelSession = useSession((s) => s.cancelSession);
 
   const [trackerTab, setTrackerTab] = useState<TrackerTab | null>(null);
   const [confirmEnd, setConfirmEnd] = useState(false);
+  const [pendingDrink, setPendingDrink] = useState<PendingDrink | null>(null);
+  const [capPrompt, setCapPrompt] = useState<CapPromptMode | null>(null);
 
   useEffect(() => {
     if (!active) return;
@@ -104,6 +118,14 @@ export function SessionPage() {
       document.removeEventListener('visibilitychange', onFocus);
     };
   }, [active, tickNow]);
+
+  useEffect(() => {
+    if (active) return;
+    setTrackerTab(null);
+    setConfirmEnd(false);
+    setPendingDrink(null);
+    setCapPrompt(null);
+  }, [active]);
 
   const effectiveStart = active
     ? (active.plannedStartMs ?? active.startedAt)
@@ -133,6 +155,34 @@ export function SessionPage() {
     return <StartSession profile={profile} onStart={startSession} />;
   }
 
+  const closeTracker = () => setTrackerTab(null);
+  const closeCapPrompt = () => {
+    setPendingDrink(null);
+    setCapPrompt(null);
+  };
+  const handleConfirmCapOverride = () => {
+    if (!pendingDrink) return;
+    addDrink(pendingDrink);
+    closeCapPrompt();
+  };
+  const handleSwapToWater = () => {
+    addWater();
+    closeCapPrompt();
+  };
+  const handleAddDrink = (input: PendingDrink) => {
+    if (
+      hasDrinkCap(active) &&
+      active.drinks.length + 1 > active.plannedDrinkCap
+    ) {
+      closeTracker();
+      setPendingDrink(input);
+      setCapPrompt((active.capBreachAttempts ?? 0) === 0 ? 'pause' : 'confirm');
+      markCapBreachAttempt();
+      return;
+    }
+    addDrink(input);
+  };
+
   if (active.plannedStartMs && now < active.plannedStartMs) {
     const firstName = profile.name.split(' ')[0] || profile.name;
     return (
@@ -157,12 +207,30 @@ export function SessionPage() {
           food={active.food}
           behind={false}
           now={now}
-          onAddDrink={addDrink}
+          onAddDrink={handleAddDrink}
           onRemoveDrink={removeDrink}
           onAddWater={addWater}
           onRemoveWater={removeWater}
           onAddFood={addFood}
           onRemoveFood={removeFood}
+        />
+        <CapPausePrompt
+          open={capPrompt === 'pause'}
+          pendingDrink={pendingDrink}
+          plannedDrinkCap={active.plannedDrinkCap}
+          drinksLogged={active.drinks.length}
+          onWait={closeCapPrompt}
+          onAddWater={handleSwapToWater}
+          onAddAnyway={handleConfirmCapOverride}
+        />
+        <CapConfirmSheet
+          open={capPrompt === 'confirm'}
+          pendingDrink={pendingDrink}
+          plannedDrinkCap={active.plannedDrinkCap}
+          drinksLogged={active.drinks.length}
+          onClose={closeCapPrompt}
+          onAddWater={handleSwapToWater}
+          onConfirm={handleConfirmCapOverride}
         />
       </>
     );
@@ -220,9 +288,8 @@ export function SessionPage() {
     .toUpperCase();
 
   const firstName = profile.name.split(' ')[0] || profile.name;
-
   const openTracker = (tab: TrackerTab) => setTrackerTab(tab);
-  const closeTracker = () => setTrackerTab(null);
+  const capRemaining = drinkCapRemaining(active);
 
   return (
     <div className="max-w-md mx-auto px-5 pt-8 pb-32">
@@ -281,6 +348,16 @@ export function SessionPage() {
           </span>
         </motion.div>
       </div>
+
+      {capRemaining !== null && (
+        <div className="mt-5">
+          <DrinkCapCard
+            plannedDrinkCap={active.plannedDrinkCap!}
+            drinksLogged={active.drinks.length}
+            remaining={capRemaining}
+          />
+        </div>
+      )}
 
       {/* Night curve card */}
       <div className="mt-5 rounded-[20px] bg-bg-card border border-line shadow-card px-3 pt-4 pb-2">
@@ -416,7 +493,7 @@ export function SessionPage() {
         food={active.food}
         behind={behind}
         now={now}
-        onAddDrink={addDrink}
+        onAddDrink={handleAddDrink}
         onRemoveDrink={removeDrink}
         onAddWater={addWater}
         onRemoveWater={removeWater}
@@ -447,6 +524,24 @@ export function SessionPage() {
           setConfirmEnd(false);
           endSession(peak, hRisk);
         }}
+      />
+      <CapPausePrompt
+        open={capPrompt === 'pause'}
+        pendingDrink={pendingDrink}
+        plannedDrinkCap={active.plannedDrinkCap}
+        drinksLogged={active.drinks.length}
+        onWait={closeCapPrompt}
+        onAddWater={handleSwapToWater}
+        onAddAnyway={handleConfirmCapOverride}
+      />
+      <CapConfirmSheet
+        open={capPrompt === 'confirm'}
+        pendingDrink={pendingDrink}
+        plannedDrinkCap={active.plannedDrinkCap}
+        drinksLogged={active.drinks.length}
+        onClose={closeCapPrompt}
+        onAddWater={handleSwapToWater}
+        onConfirm={handleConfirmCapOverride}
       />
     </div>
   );
@@ -677,6 +772,252 @@ function StatTile({
   );
 }
 
+function DrinkCapCard({
+  plannedDrinkCap,
+  drinksLogged,
+  remaining,
+}: {
+  plannedDrinkCap: number;
+  drinksLogged: number;
+  remaining: number;
+}) {
+  const overBy = Math.max(0, -remaining);
+  const atCap = remaining === 0;
+  const tone =
+    overBy > 0
+      ? {
+          accent: '#8C3A2A',
+          bg: 'rgba(140,58,42,0.08)',
+          border: 'rgba(140,58,42,0.22)',
+          copy: `Past your ${plannedDrinkCap}-drink cap. Slow down and switch to water.`,
+        }
+      : atCap
+        ? {
+            accent: '#B28034',
+            bg: 'rgba(178,128,52,0.08)',
+            border: 'rgba(178,128,52,0.22)',
+            copy: `At your cap. The next drink will trigger a pause.`,
+          }
+        : {
+            accent: '#3A5E4C',
+            bg: 'rgba(58,94,76,0.08)',
+            border: 'rgba(58,94,76,0.2)',
+            copy: `${drinksLogged} logged so far. Stay on water between rounds.`,
+          };
+  const big = overBy > 0 ? overBy.toString() : remaining.toString();
+  const label = overBy > 0 ? 'over' : 'left';
+
+  return (
+    <motion.div
+      initial={{ opacity: 0, y: 6 }}
+      animate={{ opacity: 1, y: 0 }}
+      className="rounded-[24px] border p-4 shadow-card"
+      style={{ borderColor: tone.border, background: tone.bg }}
+    >
+      <div className="flex items-start justify-between gap-3">
+        <div>
+          <div className="eyebrow" style={{ color: tone.accent }}>
+            DRINKS REMAINING
+          </div>
+          <div className="flex items-end gap-2 mt-2">
+            <div
+              className="font-display tabular-nums leading-none"
+              style={{ fontSize: 64, color: tone.accent, fontWeight: 300 }}
+            >
+              {big}
+            </div>
+            <div
+              className="font-mono text-[11px] uppercase tracking-[0.18em] mb-2"
+              style={{ color: tone.accent }}
+            >
+              {label}
+            </div>
+          </div>
+          <p className="font-display text-[17px] leading-snug text-ink mt-1 max-w-[18rem]">
+            {tone.copy}
+          </p>
+        </div>
+        <div className="rounded-full border border-line bg-white/80 px-3 py-1.5 font-mono text-[10px] uppercase tracking-[0.18em] text-ink-muted shrink-0">
+          {drinksLogged}/{plannedDrinkCap} logged
+        </div>
+      </div>
+      <div className="grid grid-cols-2 gap-2 mt-4">
+        <CapMiniStat label="CAP" value={plannedDrinkCap.toString()} />
+        <CapMiniStat
+          label={overBy > 0 ? 'OVER BY' : 'NEXT'}
+          value={overBy > 0 ? overBy.toString() : remaining === 0 ? 'Pause' : 'Water'}
+        />
+      </div>
+    </motion.div>
+  );
+}
+
+function CapMiniStat({ label, value }: { label: string; value: string }) {
+  return (
+    <div className="rounded-[16px] border border-line/70 bg-white/65 px-3 py-2.5">
+      <div className="font-mono text-[9px] uppercase tracking-[0.18em] text-ink-dim">
+        {label}
+      </div>
+      <div className="font-display text-[20px] leading-none text-ink mt-1">
+        {value}
+      </div>
+    </div>
+  );
+}
+
+function CapPausePrompt({
+  open,
+  pendingDrink,
+  plannedDrinkCap,
+  drinksLogged,
+  onWait,
+  onAddWater,
+  onAddAnyway,
+}: {
+  open: boolean;
+  pendingDrink: PendingDrink | null;
+  plannedDrinkCap: number | undefined;
+  drinksLogged: number;
+  onWait: () => void;
+  onAddWater: () => void;
+  onAddAnyway: () => void;
+}) {
+  const nextCount = drinksLogged + 1;
+
+  return (
+    <AnimatePresence>
+      {open && pendingDrink && plannedDrinkCap !== undefined && (
+        <motion.div
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          exit={{ opacity: 0 }}
+          className="fixed inset-0 z-[70] bg-[linear-gradient(180deg,#F7F1E7_0%,#F1E5D1_100%)]"
+        >
+          <div
+            className="max-w-md mx-auto min-h-full px-5 flex flex-col justify-between"
+            style={{
+              paddingTop: 'max(2rem, env(safe-area-inset-top))',
+              paddingBottom: 'max(1.5rem, env(safe-area-inset-bottom))',
+            }}
+          >
+            <div>
+              <div className="eyebrow text-risk-red">PAUSE HERE</div>
+              <div className="h-14 w-14 rounded-full border border-risk-red/25 bg-risk-red/10 flex items-center justify-center mt-5">
+                <Target className="h-6 w-6 text-risk-red" />
+              </div>
+              <h2 className="font-display text-[38px] leading-[1.02] tracking-[-0.03em] text-ink mt-5">
+                Next drink puts you over tonight&apos;s cap.
+              </h2>
+              <p className="font-display italic text-[19px] text-ink-muted mt-4 leading-snug">
+                Wait 15 minutes, drink some water, then see how you feel.
+              </p>
+
+              <div className="mt-6 rounded-[24px] border border-line bg-white/80 p-4 shadow-card">
+                <div className="eyebrow">ABOUT TO LOG</div>
+                <div className="font-display text-[24px] text-ink mt-2 leading-tight">
+                  {pendingDrink.label}
+                </div>
+                <div className="font-mono text-[11px] text-ink-dim mt-1.5 tracking-tight">
+                  {pendingDrink.standardDrinks.toFixed(1)} std · makes it {nextCount}/{plannedDrinkCap}{' '}
+                  drinks tonight
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 gap-2 mt-4">
+                <CapMiniStat label="CAP" value={plannedDrinkCap.toString()} />
+                <CapMiniStat label="LOGGED" value={drinksLogged.toString()} />
+              </div>
+            </div>
+
+            <div className="space-y-2.5">
+              <Button
+                className="w-full"
+                size="lg"
+                onClick={onAddWater}
+              >
+                <span className="inline-flex items-center gap-2">
+                  <Droplets className="h-4 w-4" />
+                  Log water instead
+                </span>
+              </Button>
+              <Button
+                variant="secondary"
+                className="w-full"
+                size="lg"
+                onClick={onWait}
+              >
+                I&apos;ll wait 15 minutes
+              </Button>
+              <button
+                type="button"
+                onClick={onAddAnyway}
+                className="w-full py-3 font-mono text-[11px] tracking-[0.18em] uppercase text-ink-dim hover:text-ink transition"
+              >
+                Add this drink anyway
+              </button>
+            </div>
+          </div>
+        </motion.div>
+      )}
+    </AnimatePresence>
+  );
+}
+
+function CapConfirmSheet({
+  open,
+  pendingDrink,
+  plannedDrinkCap,
+  drinksLogged,
+  onClose,
+  onAddWater,
+  onConfirm,
+}: {
+  open: boolean;
+  pendingDrink: PendingDrink | null;
+  plannedDrinkCap: number | undefined;
+  drinksLogged: number;
+  onClose: () => void;
+  onAddWater: () => void;
+  onConfirm: () => void;
+}) {
+  if (!pendingDrink || plannedDrinkCap === undefined) return null;
+
+  const overBy = Math.max(1, drinksLogged + 1 - plannedDrinkCap);
+
+  return (
+    <Sheet open={open} onClose={onClose}>
+      <div className="eyebrow text-risk-red">OVER THE CAP</div>
+      <h2 className="font-display text-[28px] leading-[1.06] tracking-[-0.02em] text-ink mt-2">
+        This drink puts you {overBy} over tonight&apos;s cap.
+      </h2>
+      <p className="font-display italic text-[16px] text-ink-muted mt-3 leading-snug">
+        {pendingDrink.label} · {pendingDrink.standardDrinks.toFixed(1)} std
+      </p>
+
+      <div className="grid grid-cols-2 gap-2 mt-5">
+        <CapMiniStat label="CAP" value={plannedDrinkCap.toString()} />
+        <CapMiniStat label="LOGGED" value={drinksLogged.toString()} />
+      </div>
+
+      <div className="space-y-2.5 mt-6">
+        <Button className="w-full" size="lg" onClick={onConfirm}>
+          Add anyway
+        </Button>
+        <Button className="w-full" size="lg" variant="secondary" onClick={onAddWater}>
+          Log water instead
+        </Button>
+        <button
+          type="button"
+          onClick={onClose}
+          className="w-full py-3 font-mono text-[11px] tracking-[0.18em] uppercase text-ink-dim hover:text-ink transition"
+        >
+          Cancel
+        </button>
+      </div>
+    </Sheet>
+  );
+}
+
 function StartSession({
   profile,
   onStart,
@@ -684,248 +1025,13 @@ function StartSession({
   profile: Profile;
   onStart: (
     h: number,
-    opts?: { wakeAtMs?: number; planToDrive?: boolean; plannedStartMs?: number },
+    opts?: {
+      wakeAtMs?: number;
+      planToDrive?: boolean;
+      plannedStartMs?: number;
+      plannedDrinkCap?: number;
+    },
   ) => void;
 }) {
-  const [hours, setHours] = useState(4);
-  const [wakeDraft, setWakeDraft] = useState(() => {
-    const d = new Date();
-    d.setDate(d.getDate() + 1);
-    d.setHours(8, 0, 0, 0);
-    const pad = (n: number) => String(n).padStart(2, '0');
-    return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(
-      d.getHours(),
-    )}:${pad(d.getMinutes())}`;
-  });
-  const [useWake, setUseWake] = useState(true);
-  const [driving, setDriving] = useState(false);
-  const [planBaseline] = useState(() => Date.now());
-
-  const [startLater, setStartLater] = useState(false);
-  const [startDraft, setStartDraft] = useState(() => {
-    const d = new Date();
-    d.setHours(d.getHours() + 2, 0, 0, 0);
-    const pad = (n: number) => String(n).padStart(2, '0');
-    return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(
-      d.getHours(),
-    )}:${pad(d.getMinutes())}`;
-  });
-
-  const plannedStartMs = useMemo(() => {
-    if (!startLater) return undefined;
-    const n = new Date(startDraft).getTime();
-    return Number.isFinite(n) && n > Date.now() ? n : undefined;
-  }, [startLater, startDraft]);
-
-  const wakeMs = useMemo(() => {
-    const n = new Date(wakeDraft).getTime();
-    return Number.isFinite(n) ? n : undefined;
-  }, [wakeDraft]);
-
-  const plan = useMemo(
-    () =>
-      planNight({
-        profile,
-        plannedStartMs: plannedStartMs ?? planBaseline,
-        expectedHours: hours,
-        wakeAtMs: useWake ? wakeMs : undefined,
-        driving,
-      }),
-    [profile, plannedStartMs, planBaseline, hours, useWake, wakeMs, driving],
-  );
-
-  const today = new Date()
-    .toLocaleDateString(undefined, {
-      weekday: 'short',
-      month: 'short',
-      day: 'numeric',
-    })
-    .toUpperCase();
-  const firstName = profile.name.split(' ')[0] || profile.name;
-
-  return (
-    <div className="max-w-md mx-auto px-5 pt-8 pb-28">
-      <motion.header
-        initial={{ opacity: 0, y: -6 }}
-        animate={{ opacity: 1, y: 0 }}
-        className="mb-8"
-      >
-        <div className="eyebrow">TONIGHT · {today}</div>
-        <h1 className="font-display text-[44px] leading-[1.02] tracking-[-0.03em] text-ink mt-1">
-          Hi, <span className="italic text-accent">{firstName}.</span>
-        </h1>
-        <p className="font-display italic text-ink-muted text-[18px] mt-3">
-          A quiet companion for loud nights.
-        </p>
-      </motion.header>
-
-      <motion.div
-        initial={{ opacity: 0, y: 12 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ delay: 0.08 }}
-      >
-        <Card className="text-center">
-          <div className="eyebrow">EXPECTED DURATION</div>
-          <div className="font-display tabular-nums text-ink my-3 leading-none tracking-[-0.03em]" style={{ fontSize: 88, fontWeight: 300 }}>
-            {hours}
-            <span className="font-display text-[32px] text-ink-muted ml-1">h</span>
-          </div>
-          <input
-            type="range"
-            min="1"
-            max="12"
-            step="0.5"
-            value={hours}
-            onChange={(e) => setHours(parseFloat(e.target.value))}
-            className="w-full"
-          />
-          <div className="flex justify-between font-mono text-[10px] text-ink-dim mt-2 px-1">
-            <span>1h</span>
-            <span>6h</span>
-            <span>12h</span>
-          </div>
-
-          <div className="mt-6 text-left rounded-2xl border border-line bg-bg-elev p-4">
-            <label className="text-sm font-semibold text-ink">
-              When do you start drinking?
-            </label>
-            <div className="mt-2 grid grid-cols-2 gap-2">
-              <button
-                type="button"
-                onClick={() => setStartLater(false)}
-                className={`h-11 rounded-xl text-sm font-semibold min-tap transition-all ${
-                  !startLater
-                    ? 'bg-ink text-white'
-                    : 'bg-bg-card border border-line text-ink-muted'
-                }`}
-              >
-                <span className="inline-flex items-center gap-1.5">
-                  <Zap className="h-3.5 w-3.5" />
-                  Right now
-                </span>
-              </button>
-              <button
-                type="button"
-                onClick={() => setStartLater(true)}
-                className={`h-11 rounded-xl text-sm font-semibold min-tap transition-all ${
-                  startLater
-                    ? 'bg-accent text-white'
-                    : 'bg-bg-card border border-line text-ink-muted'
-                }`}
-              >
-                <span className="inline-flex items-center gap-1.5">
-                  <Clock className="h-3.5 w-3.5" />
-                  Set a time
-                </span>
-              </button>
-            </div>
-            {startLater ? (
-              <>
-                <input
-                  type="datetime-local"
-                  value={startDraft}
-                  onChange={(e) => setStartDraft(e.target.value)}
-                  className="w-full h-11 px-3 mt-3 rounded-xl bg-bg-card border border-line text-ink focus:border-accent focus:outline-none focus:ring-4 focus:ring-accent/15"
-                />
-                {plannedStartMs ? (
-                  <div className="mt-2 font-mono text-[10px] text-ink-dim leading-snug">
-                    Until then you'll get a live pre-game checklist — eat,
-                    hydrate, plan a ride, etc.
-                  </div>
-                ) : (
-                  <div className="mt-2 font-mono text-[10px] text-risk-red leading-snug">
-                    Pick a future time, or switch to "Right now".
-                  </div>
-                )}
-              </>
-            ) : (
-              <div className="mt-2 font-mono text-[10px] text-ink-dim leading-snug">
-                Jumps straight into BAC tracking.
-              </div>
-            )}
-          </div>
-
-          <div className="mt-6 text-left">
-            <div className="flex items-center justify-between">
-              <label className="text-sm font-semibold text-ink">Wake up time</label>
-              <button
-                type="button"
-                onClick={() => setUseWake((v) => !v)}
-                className="font-mono text-[11px] text-accent uppercase tracking-wider hover:underline underline-offset-2"
-              >
-                {useWake ? "I'll sleep in" : 'Set a time'}
-              </button>
-            </div>
-            {useWake ? (
-              <input
-                type="datetime-local"
-                value={wakeDraft}
-                onChange={(e) => setWakeDraft(e.target.value)}
-                className="w-full h-11 px-3 mt-2 rounded-xl bg-bg-card border border-line text-ink focus:border-accent focus:outline-none focus:ring-4 focus:ring-accent/15"
-              />
-            ) : (
-              <div className="mt-2 font-display italic text-ink-dim text-sm">
-                Whenever — we'll only track sober time.
-              </div>
-            )}
-          </div>
-
-          <div className="mt-5 text-left">
-            <label className="text-sm font-semibold text-ink">Do you plan on driving?</label>
-            <div className="mt-2 grid grid-cols-2 gap-2">
-              <button
-                type="button"
-                onClick={() => setDriving(false)}
-                className={`h-11 rounded-xl text-sm font-semibold min-tap transition-all ${
-                  !driving
-                    ? 'bg-ink text-white'
-                    : 'bg-bg-card border border-line text-ink-muted'
-                }`}
-              >
-                <span className="inline-flex items-center gap-1.5">
-                  <Moon className="h-3.5 w-3.5" />
-                  No
-                </span>
-              </button>
-              <button
-                type="button"
-                onClick={() => setDriving(true)}
-                className={`h-11 rounded-xl text-sm font-semibold min-tap transition-all ${
-                  driving
-                    ? 'bg-risk-red text-white'
-                    : 'bg-bg-card border border-line text-ink-muted'
-                }`}
-              >
-                <span className="inline-flex items-center gap-1.5">
-                  <Car className="h-3.5 w-3.5" />
-                  Yes
-                </span>
-              </button>
-            </div>
-          </div>
-
-          <Button
-            className="w-full mt-6 font-display italic text-[20px]"
-            size="lg"
-            disabled={startLater && !plannedStartMs}
-            onClick={() =>
-              onStart(hours, {
-                wakeAtMs: useWake ? wakeMs : undefined,
-                planToDrive: driving,
-                plannedStartMs,
-              })
-            }
-          >
-            {plannedStartMs ? 'Prep the night' : 'Start the night'}
-          </Button>
-        </Card>
-      </motion.div>
-
-      <PlanCard plan={plan} now={planBaseline} />
-
-      <p className="font-mono text-[10px] text-ink-dim text-center mt-4 uppercase tracking-wider">
-        Estimates only. Never drive after drinking.
-      </p>
-    </div>
-  );
+  return <PlanTonight profile={profile} onStart={onStart} />;
 }

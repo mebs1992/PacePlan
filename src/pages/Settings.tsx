@@ -1,6 +1,14 @@
 import { useState } from 'react';
 import { Button } from '@/components/ui/Button';
 import { Sheet } from '@/components/ui/Sheet';
+import {
+  frequencyLabel,
+  hydrationHabitLabel,
+  morningFeelLabel,
+  sleepQualityLabel,
+  typicalDrinksLabel,
+} from '@/lib/baseline';
+import { useDaily } from '@/store/useDaily';
 import { useProfile } from '@/store/useProfile';
 import { useSession } from '@/store/useSession';
 
@@ -8,6 +16,7 @@ export function SettingsPage() {
   const profile = useProfile((s) => s.profile);
   const resetProfile = useProfile((s) => s.reset);
   const clearHistory = useSession((s) => s.clearHistory);
+  const clearDaily = useDaily((s) => s.clearAll);
   const [privacyOpen, setPrivacyOpen] = useState(false);
 
   return (
@@ -30,8 +39,28 @@ export function SettingsPage() {
                     {profile.name}
                   </div>
                   <div className="font-mono text-[11px] text-ink-muted mt-1.5 leading-relaxed">
-                    {profile.sex} · {profile.age}y · {profile.heightCm}cm · {profile.weightKg}kg
+                    {[
+                      profile.sex,
+                      profile.age ? `${profile.age}y` : null,
+                      profile.heightCm ? `${profile.heightCm}cm` : null,
+                      `${profile.weightKg}kg`,
+                    ]
+                      .filter(Boolean)
+                      .join(' · ')}
                   </div>
+                  {profile.baseline && (
+                    <>
+                      <div className="font-display italic text-[14px] text-ink-muted mt-2 leading-snug">
+                        {frequencyLabel(profile.baseline.frequency)} ·{' '}
+                        {typicalDrinksLabel(profile.baseline.typicalDrinks)} ·{' '}
+                        {morningFeelLabel(profile.baseline.morningFeel)}
+                      </div>
+                      <div className="font-mono text-[10px] text-ink-dim mt-1 leading-relaxed">
+                        {sleepQualityLabel(profile.baseline.sleepQuality)} ·{' '}
+                        {hydrationHabitLabel(profile.baseline.hydrationHabit)}
+                      </div>
+                    </>
+                  )}
                 </div>
                 <Button
                   variant="secondary"
@@ -39,7 +68,7 @@ export function SettingsPage() {
                   onClick={() => {
                     if (
                       confirm(
-                        'Edit profile will reset it. You will be asked to set up again. History is kept.'
+                        'Edit profile will reset it. You will be asked to set up again. Session history and home check-ins are kept.'
                       )
                     ) {
                       resetProfile();
@@ -74,6 +103,10 @@ export function SettingsPage() {
               <MathRow label="Accounts" value="none" />
               <MathRow label="Tracking" value="none" />
             </dl>
+            <p className="text-sm text-ink-muted leading-relaxed mb-4">
+              Home readiness uses water and sleep check-ins. Clearing session history does not
+              erase those unless you clear them too.
+            </p>
             <div className="space-y-2">
               <Button
                 variant="secondary"
@@ -89,7 +122,16 @@ export function SettingsPage() {
                   if (confirm('Clear session history?')) clearHistory();
                 }}
               >
-                Clear history
+                Clear session history
+              </Button>
+              <Button
+                variant="secondary"
+                className="w-full"
+                onClick={() => {
+                  if (confirm('Clear home check-ins for water and sleep?')) clearDaily();
+                }}
+              >
+                Clear readiness check-ins
               </Button>
               <Button
                 variant="danger"
@@ -97,7 +139,7 @@ export function SettingsPage() {
                 onClick={() => {
                   if (
                     confirm(
-                      'Reset profile? You will be asked to set up again. History is kept.'
+                      'Reset profile? You will be asked to set up again. Session history and home check-ins are kept.'
                     )
                   ) {
                     resetProfile();
@@ -154,18 +196,20 @@ function PrivacyPolicyContent() {
       <section>
         <div className="eyebrow mb-2">WHAT PACEPLAN STORES</div>
         <p>
-          PacePlan stores your profile details, disclaimer acknowledgement, active session,
-          session history, drink entries, food and water entries, wake-up timing, drive plan
-          flag, and any morning recap notes you choose to save.
+          PacePlan stores your profile details, onboarding baseline answers, disclaimer
+          acknowledgement, active session, session history, drink entries, food and water
+          entries, daily hydration and sleep check-ins, wake-up timing, drive plan flag,
+          and any morning recap notes you choose to save.
         </p>
       </section>
 
       <section>
         <div className="eyebrow mb-2">HOW YOUR DATA IS USED</div>
         <p>
-          This information is used only to calculate your estimates, restore your progress,
-          and show your history inside the app. PacePlan does not require an account and
-          does not sync your data to a backend service.
+          This information is used only to calculate your estimates, personalise your
+          starting read, restore your progress, and show your history inside the app.
+          PacePlan does not require an account and does not sync your data to a backend
+          service.
         </p>
       </section>
 
@@ -181,10 +225,12 @@ function PrivacyPolicyContent() {
       <section>
         <div className="eyebrow mb-2">YOUR CONTROLS</div>
         <p>
-          Use <span className="font-mono text-[11px] text-ink">Clear history</span> to erase
-          saved sessions and <span className="font-mono text-[11px] text-ink">Reset profile</span>{' '}
-          to remove your profile details. Removing the app from your device also removes the
-          local app container.
+          Use <span className="font-mono text-[11px] text-ink">Clear session history</span> to
+          erase saved sessions, <span className="font-mono text-[11px] text-ink">Clear readiness check-ins</span>{' '}
+          to remove saved water and sleep logs, and{' '}
+          <span className="font-mono text-[11px] text-ink">Reset profile</span> to remove your
+          profile details. Removing the app from your device also removes the local app
+          container.
         </p>
       </section>
     </div>
