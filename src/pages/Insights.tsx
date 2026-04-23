@@ -4,6 +4,7 @@ import { Frown, Laugh, Droplets, Utensils, type LucideIcon } from 'lucide-react'
 import { useSession } from '@/store/useSession';
 import { riskFor } from '@/lib/bac';
 import {
+  capAdherence,
   compareMornings,
   computeAggregates,
   drinkTypeImpacts,
@@ -23,9 +24,10 @@ const RISK_TEXT: Record<RiskLevel, string> = {
 export function InsightsPage() {
   const history = useSession((s) => s.history);
 
-  const { aggregates, mornings, symptoms, helpers, drinkTypes } = useMemo(
+  const { aggregates, caps, mornings, symptoms, helpers, drinkTypes } = useMemo(
     () => ({
       aggregates: computeAggregates(history),
+      caps: capAdherence(history),
       mornings: compareMornings(history),
       symptoms: topSymptoms(history),
       helpers: helperImpacts(history),
@@ -57,6 +59,8 @@ export function InsightsPage() {
             avgStdDrinks={aggregates.avgStdDrinks}
             totalWithRecap={aggregates.totalWithRecap}
           />
+
+          <CapAdherenceCard caps={caps} />
 
           {aggregates.totalWithRecap === 0 && (
             <div className="rounded-[20px] border border-line bg-bg-card p-5">
@@ -167,6 +171,60 @@ function StatCell({
         </div>
       )}
     </div>
+  );
+}
+
+function CapAdherenceCard({
+  caps,
+}: {
+  caps: ReturnType<typeof capAdherence>;
+}) {
+  return (
+    <motion.div
+      initial={{ opacity: 0, y: 8 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ delay: 0.03 }}
+      className="rounded-[20px] border border-line bg-bg-card p-5"
+    >
+      <div className="eyebrow mb-3">CAP ADHERENCE</div>
+      {caps.totalWithCap === 0 ? (
+        <p className="font-display italic text-[15px] text-ink-muted leading-snug">
+          Set a drink cap when you start a session and we&apos;ll track how often
+          you stay inside it.
+        </p>
+      ) : (
+        <>
+          <div className="flex items-end justify-between gap-4">
+            <div>
+              <div className="font-display text-[34px] leading-none text-ink">
+                {caps.withinCapCount}/{caps.totalWithCap}
+              </div>
+              <div className="font-display italic text-[15px] text-ink-muted mt-2">
+                nights stayed within cap
+              </div>
+            </div>
+            <div className="rounded-full border border-line bg-bg-elev px-3 py-1.5 font-mono text-[10px] uppercase tracking-[0.18em] text-ink-muted shrink-0">
+              {Math.round((caps.withinCapRate ?? 0) * 100)}% hit rate
+            </div>
+          </div>
+
+          <div className="grid grid-cols-2 gap-3 mt-5">
+            <StatCell
+              label="OVER"
+              value={caps.exceededCapCount.toString()}
+              sub="nights"
+            />
+            <StatCell
+              label="AVG MISS"
+              value={
+                caps.avgOverBy !== null ? caps.avgOverBy.toFixed(1) : '0.0'
+              }
+              sub="drinks"
+            />
+          </div>
+        </>
+      )}
+    </motion.div>
   );
 }
 

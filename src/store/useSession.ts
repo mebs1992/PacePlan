@@ -21,7 +21,12 @@ type SessionState = {
   justEndedId: string | null;
   startSession: (
     expectedHours: number,
-    opts?: { wakeAtMs?: number; planToDrive?: boolean; plannedStartMs?: number },
+    opts?: {
+      wakeAtMs?: number;
+      planToDrive?: boolean;
+      plannedStartMs?: number;
+      plannedDrinkCap?: number;
+    },
   ) => void;
   endSession: (peakBac: number, predictedRisk?: HangoverRisk) => string | null;
   cancelSession: () => void;
@@ -30,6 +35,7 @@ type SessionState = {
   setWakeAt: (ms: number | undefined) => void;
   setPlanToDrive: (v: boolean) => void;
   setPlannedStartAt: (ms: number | undefined) => void;
+  markCapBreachAttempt: () => void;
   togglePrepDone: (id: string) => void;
   addDrink: (input: { type: DrinkType; label: string; standardDrinks: number }) => void;
   removeDrink: (id: string) => void;
@@ -56,9 +62,11 @@ export const useSession = create<SessionState>()(
           id: nanoid(),
           startedAt: Date.now(),
           expectedHours,
+          plannedDrinkCap: opts?.plannedDrinkCap,
           drinks: [],
           food: [],
           water: [],
+          capBreachAttempts: 0,
           wakeAtMs: opts?.wakeAtMs,
           planToDrive: opts?.planToDrive ?? false,
           plannedStartMs: opts?.plannedStartMs,
@@ -107,6 +115,17 @@ export const useSession = create<SessionState>()(
         const { active } = get();
         if (!active) return;
         set({ active: { ...active, plannedStartMs: ms } });
+      },
+
+      markCapBreachAttempt: () => {
+        const { active } = get();
+        if (!active) return;
+        set({
+          active: {
+            ...active,
+            capBreachAttempts: (active.capBreachAttempts ?? 0) + 1,
+          },
+        });
       },
 
       togglePrepDone: (id) => {
@@ -196,7 +215,7 @@ export const useSession = create<SessionState>()(
 
       tickNow: () => set({ now: Date.now() }),
 
-      clearHistory: () => set({ history: [] }),
+      clearHistory: () => set({ history: [], justEndedId: null }),
     }),
     {
       name: 'hangover-buddy:session',

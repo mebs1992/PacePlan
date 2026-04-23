@@ -1,5 +1,6 @@
 import type { DrinkType, Session, Symptom } from '@/types';
 import { DRINK_PRESETS } from './drinks';
+import { hasDrinkCap, drinksOverCap, isWithinDrinkCap } from './drinkCap';
 import { waterDeficit } from './bac';
 
 export type EndedSession = Session & { endedAt: number };
@@ -46,6 +47,14 @@ export type DrinkTypeStat = {
   label: string;
   sessionCount: number;
   avgRating: number;
+};
+
+export type CapAdherence = {
+  totalWithCap: number;
+  withinCapCount: number;
+  exceededCapCount: number;
+  withinCapRate: number | null;
+  avgOverBy: number | null;
 };
 
 const SYMPTOM_LABEL: Record<Symptom, string> = {
@@ -100,6 +109,21 @@ export function computeAggregates(history: Session[]): Aggregates {
       ? avg(recapped.map((s) => s.recap!.rating))
       : null,
     avgStdDrinks: ended.length ? avg(ended.map(totalStd)) : null,
+  };
+}
+
+export function capAdherence(history: Session[]): CapAdherence {
+  const withCap = endedSessions(history).filter((s) => hasDrinkCap(s));
+  const withinCap = withCap.filter((s) => isWithinDrinkCap(s) === true);
+  const exceeded = withCap.filter((s) => isWithinDrinkCap(s) === false);
+  return {
+    totalWithCap: withCap.length,
+    withinCapCount: withinCap.length,
+    exceededCapCount: exceeded.length,
+    withinCapRate: withCap.length ? withinCap.length / withCap.length : null,
+    avgOverBy: exceeded.length
+      ? avg(exceeded.map((s) => drinksOverCap(s) ?? 0))
+      : null,
   };
 }
 

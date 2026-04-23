@@ -1,6 +1,7 @@
 import { useSession } from '@/store/useSession';
 import { formatDuration } from '@/lib/time';
 import { riskFor } from '@/lib/bac';
+import { drinksOverCap, isWithinDrinkCap } from '@/lib/drinkCap';
 import { motion } from 'framer-motion';
 import { ArrowRight, Angry, Frown, Meh, Smile, Laugh, type LucideIcon } from 'lucide-react';
 import type { RiskLevel } from '@/types';
@@ -63,6 +64,8 @@ export function HistoryPage({ onOpenRecap }: Props) {
             const risk = riskFor(peak);
             const rating = s.recap?.rating;
             const canRecap = !s.recap;
+            const withinCap = isWithinDrinkCap(s);
+            const overBy = drinksOverCap(s);
             return (
               <motion.div
                 key={s.id}
@@ -88,6 +91,19 @@ export function HistoryPage({ onOpenRecap }: Props) {
                         <div className="font-mono text-[11px] text-ink-dim mt-1.5 tracking-tight">
                           {formatDuration(duration)} · {s.water.length} water · {s.food.length} food
                         </div>
+                        {withinCap !== null && (
+                          <div
+                            className={`inline-flex items-center gap-1 rounded-full border px-2.5 py-1 mt-2 font-mono text-[10px] uppercase tracking-[0.16em] ${
+                              withinCap
+                                ? 'border-risk-green/30 bg-risk-green/10 text-risk-green'
+                                : 'border-risk-red/30 bg-risk-red/10 text-risk-red'
+                            }`}
+                          >
+                            {withinCap
+                              ? `within ${s.plannedDrinkCap}-drink cap`
+                              : `${overBy} over ${s.plannedDrinkCap}-drink cap`}
+                          </div>
+                        )}
                       </div>
                     </div>
                     <div className="text-right shrink-0">
