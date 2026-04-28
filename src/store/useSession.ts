@@ -13,6 +13,43 @@ import type {
 } from '@/types';
 
 const HISTORY_LIMIT = 20;
+const HOUR_MS = 60 * 60 * 1000;
+export const INACTIVE_SESSION_MS = 2 * HOUR_MS;
+
+export function lastSessionActivityAt(session: Session): number {
+  const activity = [
+    session.startedAt,
+    session.plannedStartMs ?? 0,
+    ...session.drinks.map((entry) => entry.at),
+    ...session.food.map((entry) => entry.at),
+    ...session.water.map((entry) => entry.at),
+  ];
+  return Math.max(...activity);
+}
+
+export function inactiveSessionEndAt(
+  session: Session,
+  now: number = Date.now(),
+): number | null {
+  const lastActivityAt = lastSessionActivityAt(session);
+  if (now - lastActivityAt < INACTIVE_SESSION_MS) return null;
+  return lastActivityAt + INACTIVE_SESSION_MS;
+}
+
+function startOfLocalDay(ms: number): number {
+  const date = new Date(ms);
+  date.setHours(0, 0, 0, 0);
+  return date.getTime();
+}
+
+export function shouldShowMorningRecap(
+  session: Session,
+  now: number = Date.now(),
+): boolean {
+  if (session.recap) return false;
+  if (!session.endedAt) return false;
+  return startOfLocalDay(now) > startOfLocalDay(session.endedAt);
+}
 
 type SessionState = {
   active: Session | null;
@@ -29,6 +66,17 @@ type SessionState = {
     },
   ) => void;
   endSession: (peakBac: number, predictedRisk?: HangoverRisk) => string | null;
+  endSessionAt: (
+    endedAt: number,
+    peakBac: number,
+    predictedRisk?: HangoverRisk,
+    opts?: {
+      autoEnded?: boolean;
+      peakBacAt?: number;
+      estimatedUnderLimitAt?: number | null;
+      estimatedSoberAt?: number | null;
+    },
+  ) => string | null;
   cancelSession: () => void;
   clearJustEnded: () => void;
   setExpectedHours: (h: number) => void;
@@ -75,14 +123,21 @@ export const useSession = create<SessionState>()(
         set({ active: session, now: Date.now() });
       },
 
-      endSession: (peakBac, predictedRisk) => {
+      endSession: (peakBac, predictedRisk) =>
+        get().endSessionAt(Date.now(), peakBac, predictedRisk),
+
+      endSessionAt: (endedAt, peakBac, predictedRisk, opts) => {
         const { active, history } = get();
         if (!active) return null;
         const ended: Session = {
           ...active,
-          endedAt: Date.now(),
+          endedAt,
           peakBac,
+          peakBacAt: opts?.peakBacAt,
+          estimatedUnderLimitAt: opts?.estimatedUnderLimitAt ?? undefined,
+          estimatedSoberAt: opts?.estimatedSoberAt ?? undefined,
           predictedRisk,
+          autoEnded: opts?.autoEnded,
         };
         const next = [ended, ...history].slice(0, HISTORY_LIMIT);
         set({ active: null, history: next, justEndedId: ended.id });
@@ -149,7 +204,12 @@ export const useSession = create<SessionState>()(
           at: Date.now(),
         };
         set({
-          active: { ...active, drinks: [...active.drinks, entry] },
+          active: {
+            ...active,
+            drinks: [...active.drinks, entry],
+            firstDrinkAt: active.firstDrinkAt ?? entry.at,
+            lastDrinkAt: entry.at,
+          },
           now: Date.now(),
         });
       },
@@ -157,8 +217,15 @@ export const useSession = create<SessionState>()(
       removeDrink: (id) => {
         const { active } = get();
         if (!active) return;
+        const drinks = active.drinks.filter((d) => d.id !== id);
+        const sorted = [...drinks].sort((a, b) => a.at - b.at);
         set({
-          active: { ...active, drinks: active.drinks.filter((d) => d.id !== id) },
+          active: {
+            ...active,
+            drinks,
+            firstDrinkAt: sorted[0]?.at,
+            lastDrinkAt: sorted[sorted.length - 1]?.at,
+          },
         });
       },
 
@@ -204,12 +271,7 @@ export const useSession = create<SessionState>()(
       pendingRecapId: () => {
         const { history } = get();
         const now = Date.now();
-        const pending = history.find((s) => {
-          if (s.recap) return false;
-          if (!s.endedAt) return false;
-          const wake = s.wakeAtMs ?? s.endedAt + 8 * 60 * 60 * 1000;
-          return now >= wake;
-        });
+        const pending = history.find((s) => shouldShowMorningRecap(s, now));
         return pending?.id ?? null;
       },
 

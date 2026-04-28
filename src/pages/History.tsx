@@ -20,10 +20,10 @@ const RISK_TEXT: Record<RiskLevel, string> = {
 
 const RATING_ICON: Record<1 | 2 | 3 | 4 | 5, { icon: LucideIcon; color: string; label: string }> = {
   1: { icon: Angry, color: 'text-risk-red', label: 'Wrecked' },
-  2: { icon: Frown, color: 'text-orange-600', label: 'Rough' },
-  3: { icon: Meh, color: 'text-amber-600', label: 'Meh' },
-  4: { icon: Smile, color: 'text-lime-700', label: 'Alright' },
-  5: { icon: Laugh, color: 'text-emerald-700', label: 'Great' },
+  2: { icon: Frown, color: 'text-risk-red', label: 'Rough' },
+  3: { icon: Meh, color: 'text-risk-yellow', label: 'Meh' },
+  4: { icon: Smile, color: 'text-risk-green', label: 'Alright' },
+  5: { icon: Laugh, color: 'text-risk-green', label: 'Great' },
 };
 
 type Props = {

@@ -19,7 +19,6 @@ struct ContentView: View {
                 || Bundle.main.url(forResource: "index", withExtension: "html", subdirectory: "WebApp") != nil {
                 ZStack {
                     BundledWebView(isLoading: $isWebAppLoading)
-                        .ignoresSafeArea()
 
                     if isWebAppLoading {
                         SplashView()
@@ -31,7 +30,7 @@ struct ContentView: View {
                 MissingWebAppView()
             }
         }
-        .background(Color(.systemBackground))
+        .background(Color(red: 15.0 / 255.0, green: 23.0 / 255.0, blue: 42.0 / 255.0))
     }
 }
 
@@ -140,6 +139,79 @@ extension BundledWebView {
             guard UIApplication.shared.canOpenURL(url) else { return }
             UIApplication.shared.open(url)
         }
+
+        func webView(
+            _ webView: WKWebView,
+            runJavaScriptAlertPanelWithMessage message: String,
+            initiatedByFrame frame: WKFrameInfo,
+            completionHandler: @escaping () -> Void
+        ) {
+            presentJavaScriptDialog(
+                message: message,
+                actions: [
+                    UIAlertAction(title: "OK", style: .default) { _ in
+                        completionHandler()
+                    }
+                ],
+                fallback: completionHandler
+            )
+        }
+
+        func webView(
+            _ webView: WKWebView,
+            runJavaScriptConfirmPanelWithMessage message: String,
+            initiatedByFrame frame: WKFrameInfo,
+            completionHandler: @escaping (Bool) -> Void
+        ) {
+            presentJavaScriptDialog(
+                message: message,
+                actions: [
+                    UIAlertAction(title: "Cancel", style: .cancel) { _ in
+                        completionHandler(false)
+                    },
+                    UIAlertAction(title: "OK", style: .default) { _ in
+                        completionHandler(true)
+                    }
+                ],
+                fallback: {
+                    completionHandler(false)
+                }
+            )
+        }
+
+        private func presentJavaScriptDialog(
+            message: String,
+            actions: [UIAlertAction],
+            fallback: @escaping () -> Void
+        ) {
+            guard let presenter = topViewController() else {
+                fallback()
+                return
+            }
+
+            let alert = UIAlertController(title: nil, message: message, preferredStyle: .alert)
+            actions.forEach { alert.addAction($0) }
+            presenter.present(alert, animated: true)
+        }
+
+        private func topViewController(
+            base: UIViewController? = UIApplication.shared.connectedScenes
+                .compactMap { $0 as? UIWindowScene }
+                .flatMap(\.windows)
+                .first(where: \.isKeyWindow)?
+                .rootViewController
+        ) -> UIViewController? {
+            if let navigationController = base as? UINavigationController {
+                return topViewController(base: navigationController.visibleViewController)
+            }
+            if let tabBarController = base as? UITabBarController {
+                return topViewController(base: tabBarController.selectedViewController)
+            }
+            if let presentedViewController = base?.presentedViewController {
+                return topViewController(base: presentedViewController)
+            }
+            return base
+        }
     }
 }
 
@@ -236,8 +308,8 @@ private final class BundleSchemeHandler: NSObject, WKURLSchemeHandler {
 }
 
 private struct SplashView: View {
-    private let backgroundColor = Color(red: 244 / 255, green: 239 / 255, blue: 228 / 255)
-    private let accentColor = Color(red: 140 / 255, green: 58 / 255, blue: 42 / 255)
+    private let backgroundColor = Color(red: 15 / 255, green: 23 / 255, blue: 42 / 255)
+    private let accentColor = Color(red: 99 / 255, green: 102 / 255, blue: 241 / 255)
 
     var body: some View {
         ZStack {

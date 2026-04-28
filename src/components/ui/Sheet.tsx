@@ -35,7 +35,7 @@ export function Sheet({ open, onClose, title, children }: Props) {
             exit={{ opacity: 0 }}
             transition={{ duration: 0.2 }}
             onClick={onClose}
-            className="fixed inset-0 z-40 bg-ink/30"
+            className="fixed inset-0 z-40 bg-black/45"
           />
           <motion.div
             key="panel"
@@ -53,14 +53,14 @@ export function Sheet({ open, onClose, title, children }: Props) {
             style={{ paddingBottom: 'env(safe-area-inset-bottom)' }}
           >
             <div className="flex flex-col items-center pt-2 pb-1 cursor-grab active:cursor-grabbing">
-              <div className="h-1 w-10 rounded-full bg-ink/15" />
+              <div className="h-1 w-10 rounded-full bg-white/15" />
             </div>
             {title && (
               <div className="flex items-center justify-between px-4 pt-2 pb-3 border-b border-line">
-                <h2 className="text-lg font-bold text-ink tracking-tight">{title}</h2>
+                <h2 className="text-lg font-bold text-ink">{title}</h2>
                 <button
                   onClick={onClose}
-                  className="h-9 w-9 flex items-center justify-center rounded-full hover:bg-ink/5 text-ink-muted transition"
+                  className="h-9 w-9 flex items-center justify-center rounded-full hover:bg-bg-elev/5 text-ink-muted transition"
                   aria-label="Close"
                 >
                   <X className="h-5 w-5" />

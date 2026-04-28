@@ -5,24 +5,24 @@ import { motion } from 'framer-motion';
 
 const RISK_GRADIENT: Record<RiskLevel, { from: string; to: string; text: string; dot: string; label: string }> = {
   green: {
-    from: '#2E9E6B',
-    to: '#7AC59A',
+    from: '#38BDF8',
+    to: '#6366F1',
     text: 'text-risk-green',
-    dot: '#2E9E6B',
+    dot: '#38BDF8',
     label: 'Pacing well',
   },
   yellow: {
-    from: '#F4A261',
-    to: '#E8A33A',
+    from: '#F1E9DA',
+    to: '#E8CFC5',
     text: 'text-risk-yellow',
-    dot: '#E8A33A',
+    dot: '#F1E9DA',
     label: 'Slow down',
   },
   red: {
-    from: '#FF5A5F',
-    to: '#E5484D',
+    from: '#E8CFC5',
+    to: '#F1E9DA',
     text: 'text-risk-red',
-    dot: '#E5484D',
+    dot: '#E8CFC5',
     label: 'Stop drinking',
   },
 };
@@ -58,7 +58,7 @@ export function BACGauge({ range, risk, capPercent = 0.10 }: Props) {
             cx={SIZE / 2}
             cy={SIZE / 2}
             r={RADIUS}
-            stroke="#EDE3D6"
+            stroke="rgba(255,255,255,0.08)"
             strokeWidth={STROKE}
             fill="none"
           />

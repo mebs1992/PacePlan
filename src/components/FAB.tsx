@@ -27,7 +27,7 @@ export function FAB({ onClick, pulse, label }: Props) {
       {pulse && (
         <span
           className="absolute -top-0.5 -right-0.5 h-2.5 w-2.5 rounded-full bg-risk-yellow animate-breathe"
-          style={{ border: '2px solid #F4EFE4' }}
+          style={{ border: '2px solid #0F172A' }}
         />
       )}
     </motion.button>

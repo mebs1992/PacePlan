@@ -14,9 +14,9 @@ type Props = {
 };
 
 const RISK_COLOR: Record<RiskLevel, string> = {
-  green: '#3A5E4C',
-  yellow: '#B28034',
-  red: '#8C3A2A',
+  green: '#38BDF8',
+  yellow: '#F1E9DA',
+  red: '#E8CFC5',
 };
 
 export function NightCurve({
@@ -101,7 +101,7 @@ export function NightCurve({
         y={redY}
         width={W - padL - padR}
         height={H - padB - redY}
-        fill="#8C3A2A"
+        fill="#E8CFC5"
         opacity="0.05"
       />
       <rect
@@ -109,7 +109,7 @@ export function NightCurve({
         y={yellowY}
         width={W - padL - padR}
         height={redY - yellowY}
-        fill="#B28034"
+        fill="#F1E9DA"
         opacity="0.05"
       />
 
@@ -120,7 +120,7 @@ export function NightCurve({
             x2={W - padR}
             y1={y(v)}
             y2={y(v)}
-            stroke="#C2B391"
+            stroke="rgba(255,255,255,0.14)"
             strokeDasharray="2 4"
             strokeOpacity="0.6"
           />
@@ -130,7 +130,7 @@ export function NightCurve({
             textAnchor="end"
             fontSize="9"
             fontFamily="JetBrains Mono, monospace"
-            fill="#8A8374"
+            fill="#6B7C93"
           >
             {v.toFixed(2)}
           </text>
@@ -144,7 +144,7 @@ export function NightCurve({
           x2={x(t)}
           y1={H - padB}
           y2={H - padB + 3}
-          stroke="#8A8374"
+          stroke="#6B7C93"
           strokeOpacity="0.5"
         />
       ))}
@@ -158,7 +158,7 @@ export function NightCurve({
               textAnchor="middle"
               fontSize="9"
               fontFamily="JetBrains Mono, monospace"
-              fill="#8A8374"
+              fill="#6B7C93"
             >
               {new Date(t).getHours().toString().padStart(2, '0')}
             </text>
@@ -192,7 +192,7 @@ export function NightCurve({
             x2={x(wakeAt)}
             y1={padT}
             y2={H - padB}
-            stroke="#5D5547"
+            stroke="#9FB0C3"
             strokeOpacity="0.3"
             strokeDasharray="1 3"
           />
@@ -202,7 +202,7 @@ export function NightCurve({
             textAnchor="middle"
             fontSize="9"
             fontFamily="JetBrains Mono, monospace"
-            fill="#5D5547"
+            fill="#9FB0C3"
           >
             WAKE
           </text>
@@ -214,7 +214,7 @@ export function NightCurve({
         x2={x(now)}
         y1={padT}
         y2={H - padB}
-        stroke="#1A1712"
+        stroke="#E6EDF5"
         strokeOpacity="0.25"
       />
       <circle cx={x(now)} cy={y(nowBac)} r="5" fill={color} />

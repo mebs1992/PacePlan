@@ -15,7 +15,7 @@ export function DisclaimerModal({ onAccept }: Props) {
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
         exit={{ opacity: 0 }}
-        className="fixed inset-0 z-50 bg-ink/40 backdrop-blur-sm flex items-end sm:items-center justify-center p-4"
+        className="fixed inset-0 z-50 bg-black/45 backdrop-blur-sm flex items-end sm:items-center justify-center p-4"
       >
         <motion.div
           initial={{ y: 30, opacity: 0 }}
@@ -24,16 +24,16 @@ export function DisclaimerModal({ onAccept }: Props) {
           className="bg-bg-card rounded-3xl p-6 max-w-md w-full border border-line shadow-card-lg"
         >
           <div className="flex items-center gap-3 mb-4">
-            <div className="p-2.5 rounded-xl bg-amber-50 border border-amber-200">
+            <div className="p-2.5 rounded-xl bg-warm-sand/10 border border-line">
               <ShieldAlert className="h-5 w-5 text-risk-yellow" />
             </div>
-            <h2 className="text-lg font-bold text-ink tracking-tight">Before you start</h2>
+            <h2 className="text-lg font-bold text-ink">Before you start</h2>
           </div>
           <div className="text-sm text-ink-muted space-y-3 mb-5 leading-relaxed">
             <p>
-              Hangover Buddy gives <strong className="text-ink">rough estimates</strong> of
+              PacePlan gives <strong className="text-ink">rough estimates</strong> of
               blood alcohol concentration based on body weight, sex, and what you log.
-              Real BAC depends on many factors this app cannot see — medications,
+              Real BAC depends on many factors this app cannot see - medications,
               hydration, health conditions, fatigue, and individual metabolism.
             </p>
             <p className="text-risk-red font-semibold">
@@ -59,7 +59,7 @@ export function DisclaimerModal({ onAccept }: Props) {
             </span>
           </label>
           <Button className="w-full" size="lg" disabled={!agreed} onClick={onAccept}>
-            I understand — continue
+            I understand - continue
           </Button>
         </motion.div>
       </motion.div>

@@ -1,15 +1,19 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
+import type { DailyFoodStatus } from '@/types';
 
 type DailyState = {
   hydrationByDay: Record<string, number>;
   sleepByDay: Record<string, number>;
+  foodByDay: Record<string, DailyFoodStatus>;
   addHydration: (glasses?: number, atMs?: number) => void;
   removeHydration: (glasses?: number, atMs?: number) => void;
   setHydration: (glasses: number, atMs?: number) => void;
   addSleep: (hours?: number, atMs?: number) => void;
   removeSleep: (hours?: number, atMs?: number) => void;
   setSleep: (hours: number, atMs?: number) => void;
+  setFood: (status: DailyFoodStatus, atMs?: number) => void;
+  clearFood: (atMs?: number) => void;
   clearAll: () => void;
 };
 
@@ -26,6 +30,7 @@ export const useDaily = create<DailyState>()(
     (set) => ({
       hydrationByDay: {},
       sleepByDay: {},
+      foodByDay: {},
       addHydration: (glasses = 1, atMs = Date.now()) =>
         set((state) => {
           const key = dayKey(atMs);
@@ -88,10 +93,28 @@ export const useDaily = create<DailyState>()(
             },
           };
         }),
+      setFood: (status, atMs = Date.now()) =>
+        set((state) => {
+          const key = dayKey(atMs);
+          return {
+            foodByDay: {
+              ...state.foodByDay,
+              [key]: status,
+            },
+          };
+        }),
+      clearFood: (atMs = Date.now()) =>
+        set((state) => {
+          const key = dayKey(atMs);
+          const foodByDay = { ...state.foodByDay };
+          delete foodByDay[key];
+          return { foodByDay };
+        }),
       clearAll: () =>
         set({
           hydrationByDay: {},
           sleepByDay: {},
+          foodByDay: {},
         }),
     }),
     { name: 'hangover-buddy:daily' }
