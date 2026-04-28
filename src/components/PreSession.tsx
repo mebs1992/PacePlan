@@ -49,10 +49,10 @@ const ICON_MAP: Record<TipIcon, React.ComponentType<{ className?: string }>> = {
 };
 
 const STATUS_COPY: Record<TipStatus, { chip: string; color: string; bg: string }> = {
-  active: { chip: '', color: '#5D5547', bg: 'transparent' },
-  urgent: { chip: 'SOON', color: '#B28034', bg: 'rgba(178,128,52,0.08)' },
-  overdue: { chip: 'NOW', color: '#8C3A2A', bg: 'rgba(140,58,42,0.08)' },
-  done: { chip: 'DONE', color: '#3A5E4C', bg: 'transparent' },
+  active: { chip: '', color: '#9FB0C3', bg: 'transparent' },
+  urgent: { chip: 'SOON', color: '#F1E9DA', bg: 'rgba(241,233,218,0.10)' },
+  overdue: { chip: 'NOW', color: '#E8CFC5', bg: 'rgba(232,207,197,0.10)' },
+  done: { chip: 'DONE', color: '#38BDF8', bg: 'transparent' },
 };
 
 function toLocalInputValue(ms: number): string {
@@ -140,12 +140,12 @@ export function PreSession({
         <MiniStat
           label="soon"
           value={urgentCount.toString()}
-          accent={urgentCount > 0 ? '#B28034' : undefined}
+          accent={urgentCount > 0 ? '#F1E9DA' : undefined}
         />
         <MiniStat
           label="now"
           value={overdueCount.toString()}
-          accent={overdueCount > 0 ? '#8C3A2A' : undefined}
+          accent={overdueCount > 0 ? '#E8CFC5' : undefined}
         />
       </div>
 
@@ -263,7 +263,7 @@ function Countdown({
                 type="datetime-local"
                 value={draft}
                 onChange={(e) => setDraft(e.target.value)}
-                className="flex-1 h-11 px-3 rounded-xl bg-white border border-line text-ink focus:border-accent focus:outline-none focus:ring-4 focus:ring-accent/15"
+                className="flex-1 h-11 px-3 rounded-xl bg-bg-elev border border-line text-ink focus:border-accent focus:outline-none focus:ring-4 focus:ring-accent/15"
               />
               <Button
                 size="sm"
@@ -301,13 +301,13 @@ function MiniStat({
     <div className="rounded-2xl border border-line bg-bg-card px-3 py-2.5">
       <div
         className="font-display tabular-nums text-[22px] leading-none"
-        style={{ color: accent ?? '#1A1712' }}
+        style={{ color: accent ?? '#E6EDF5' }}
       >
         {value}
       </div>
       <div
         className="font-mono text-[10px] tracking-[0.14em] uppercase mt-1"
-        style={{ color: accent ?? '#8A8374' }}
+        style={{ color: accent ?? '#6B7C93' }}
       >
         {label}
       </div>
@@ -345,7 +345,7 @@ function TipRow({
       exit={{ opacity: 0, height: 0 }}
       transition={{ duration: 0.2 }}
       className="rounded-[18px] border border-line overflow-hidden"
-      style={{ background: style.bg === 'transparent' ? '#FBF7EE' : style.bg }}
+      style={{ background: style.bg === 'transparent' ? '#1E293B' : style.bg }}
     >
       <div className="flex items-start gap-3 p-3.5">
         <button
@@ -354,12 +354,12 @@ function TipRow({
           aria-label={isDone ? 'Mark undone' : 'Mark done'}
           className={`h-9 w-9 shrink-0 rounded-full border flex items-center justify-center transition ${
             isDone
-              ? 'border-risk-green bg-risk-green text-white'
+              ? 'border-risk-green bg-risk-green text-bg'
               : 'border-line bg-bg-elev text-ink-muted hover:border-ink-muted'
           }`}
           style={{
-            borderColor: isDone ? '#3A5E4C' : undefined,
-            background: isDone ? '#3A5E4C' : undefined,
+            borderColor: isDone ? '#38BDF8' : undefined,
+            background: isDone ? '#38BDF8' : undefined,
           }}
         >
           {isDone ? (

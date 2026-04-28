@@ -4,7 +4,7 @@ import {
   buildBaselineModel,
   personalizedEasyMorningLine,
 } from '@/lib/baseline';
-import type { DrinkEntry, Profile, Session } from '@/types';
+import type { DailyFoodStatus, DrinkEntry, Profile, Session } from '@/types';
 
 const DAY_MS = 86_400_000;
 const SLEEP_TARGET_HOURS = 8;
@@ -56,6 +56,7 @@ export type ReadinessSnapshot = {
   waterTodayMl: number;
   waterTargetMl: number;
   sleepTodayHours: number;
+  foodToday: DailyFoodStatus | null;
   drinks7dSum: number;
   daysSinceLastDrink: number;
   checkInStreak: number;
@@ -78,6 +79,7 @@ type ReadinessInputs = {
   active: Session | null;
   hydrationByDay: Record<string, number>;
   sleepByDay: Record<string, number>;
+  foodByDay?: Record<string, DailyFoodStatus>;
   atMs: number;
 };
 
@@ -143,6 +145,13 @@ export function sleepHoursForDay(
   atMs: number,
 ): number {
   return sleepByDay[dayKey(atMs)] ?? 0;
+}
+
+export function foodStatusForDay(
+  foodByDay: Record<string, DailyFoodStatus> | undefined,
+  atMs: number,
+): DailyFoodStatus | null {
+  return foodByDay?.[dayKey(atMs)] ?? null;
 }
 
 export function waterTargetMl(weightKg: number): number {
@@ -271,6 +280,7 @@ function daysSinceLastDrink(
 function hasCheckInOnDay(
   hydrationByDay: Record<string, number>,
   sleepByDay: Record<string, number>,
+  foodByDay: Record<string, DailyFoodStatus> | undefined,
   history: Session[],
   active: Session | null,
   atMs: number,
@@ -278,6 +288,7 @@ function hasCheckInOnDay(
   const key = dayKey(atMs);
   if (Object.prototype.hasOwnProperty.call(hydrationByDay, key)) return true;
   if (Object.prototype.hasOwnProperty.call(sleepByDay, key)) return true;
+  if (foodByDay && Object.prototype.hasOwnProperty.call(foodByDay, key)) return true;
   return allDrinkEntries(history, active, atMs + DAY_MS - 1).some(
     (drink) => dayKey(drink.at) === key,
   );
@@ -286,13 +297,14 @@ function hasCheckInOnDay(
 export function checkInStreak(
   hydrationByDay: Record<string, number>,
   sleepByDay: Record<string, number>,
+  foodByDay: Record<string, DailyFoodStatus> | undefined,
   history: Session[],
   active: Session | null,
   now: number,
 ): number {
   let streak = 0;
   for (let cursor = startOfDay(now); ; cursor -= DAY_MS) {
-    if (!hasCheckInOnDay(hydrationByDay, sleepByDay, history, active, cursor)) {
+    if (!hasCheckInOnDay(hydrationByDay, sleepByDay, foodByDay, history, active, cursor)) {
       break;
     }
     streak += 1;
@@ -304,7 +316,7 @@ function readinessBand(score: number | null): ReadinessBand {
   if (score === null) {
     return {
       label: 'Build your baseline',
-      accent: '#B28034',
+      accent: '#F1E9DA',
       tone: 'text-risk-yellow',
       message: 'Log water and last night’s sleep first. Then this turns into a personal read instead of a guess.',
     };
@@ -312,7 +324,7 @@ function readinessBand(score: number | null): ReadinessBand {
   if (score >= 70) {
     return {
       label: 'Good night',
-      accent: '#3A5E4C',
+      accent: '#38BDF8',
       tone: 'text-risk-green',
       message: 'You are coming in with a decent buffer. Keep the pace clean and you will feel it tomorrow.',
     };
@@ -320,14 +332,14 @@ function readinessBand(score: number | null): ReadinessBand {
   if (score >= 40) {
     return {
       label: 'Moderate risk',
-      accent: '#B28034',
+      accent: '#F1E9DA',
       tone: 'text-risk-yellow',
       message: 'Tonight is manageable, but a few cleaner choices still move the line in your favor.',
     };
   }
   return {
     label: 'Poor night to drink',
-    accent: '#8C3A2A',
+    accent: '#E8CFC5',
     tone: 'text-risk-red',
     message: 'Your body is still catching up. Water, sleep, or another dry day would help more than another round.',
   };
@@ -367,9 +379,9 @@ function actionFor(
 }
 
 function goalAccent(progress: number): string {
-  if (progress >= 0.85) return '#3A5E4C';
-  if (progress >= 0.5) return '#B28034';
-  return '#8C3A2A';
+  if (progress >= 0.85) return '#38BDF8';
+  if (progress >= 0.5) return '#F1E9DA';
+  return '#E8CFC5';
 }
 
 function buildGoals(
@@ -499,6 +511,7 @@ export function buildReadinessSnapshot({
   active,
   hydrationByDay,
   sleepByDay,
+  foodByDay,
   atMs,
 }: ReadinessInputs): ReadinessSnapshot {
   const resolved = resolveReadiness({
@@ -552,9 +565,10 @@ export function buildReadinessSnapshot({
     waterTodayMl: resolved.waterTodayMl,
     waterTargetMl: resolved.targetMl,
     sleepTodayHours: resolved.sleepTodayHours,
+    foodToday: foodStatusForDay(foodByDay, atMs),
     drinks7dSum: resolved.drinks7dSum,
     daysSinceLastDrink: resolved.dryDays,
-    checkInStreak: checkInStreak(hydrationByDay, sleepByDay, history, active, atMs),
+    checkInStreak: checkInStreak(hydrationByDay, sleepByDay, foodByDay, history, active, atMs),
     goals: buildGoals(
       resolved.waterTodayMl,
       resolved.targetMl,
@@ -664,6 +678,7 @@ export function buildTonightForecast(
   profile: Profile,
   history: Session[],
   now: number,
+  readinessScore?: number | null,
 ): {
   plan: NightPlan;
   plannedStartMs: number;
@@ -695,7 +710,7 @@ export function buildTonightForecast(
     suggestedEasyMorningLine: personalizedEasyMorningLine(
       profile.baseline,
       plan.drinksCap,
-      baseline?.readinessScore ?? null,
+      readinessScore ?? baseline?.readinessScore ?? null,
     ),
   };
 }
@@ -710,7 +725,7 @@ export function forecastDrinkingOutlook(
     return {
       score: null,
       label: 'Needs baseline',
-      accent: '#8A8374',
+      accent: '#6B7C93',
       tone: 'text-ink-muted',
       message: 'Add a water or sleep check-in first and this turns from a generic forecast into a personal one.',
     };
@@ -728,7 +743,7 @@ export function forecastDrinkingOutlook(
     return {
       score,
       label: 'None',
-      accent: '#3A5E4C',
+      accent: '#38BDF8',
       tone: 'text-risk-green',
       message: 'Inside the line. Keep water moving and the morning should stay calm.',
     };
@@ -737,7 +752,7 @@ export function forecastDrinkingOutlook(
     return {
       score,
       label: 'Mild',
-      accent: '#3A5E4C',
+      accent: '#38BDF8',
       tone: 'text-risk-green',
       message: 'Manageable if you stick to the pace and do not let the drinks bunch up.',
     };
@@ -746,7 +761,7 @@ export function forecastDrinkingOutlook(
     return {
       score,
       label: 'Rough',
-      accent: '#B28034',
+      accent: '#F1E9DA',
       tone: 'text-risk-yellow',
       message: 'This starts to bite tomorrow. Food, water, and a slower pace all matter here.',
     };
@@ -754,7 +769,7 @@ export function forecastDrinkingOutlook(
   return {
     score,
     label: 'Brutal',
-    accent: '#8C3A2A',
+    accent: '#E8CFC5',
     tone: 'text-risk-red',
     message: 'You are planning well past your cushion. Expect a hard landing unless the plan changes.',
   };

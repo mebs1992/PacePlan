@@ -63,6 +63,8 @@ export type DrinkEntry = {
 
 export type FoodSize = 'snack' | 'meal';
 
+export type DailyFoodStatus = 'none' | 'light' | 'solid';
+
 export type FoodEntry = {
   id: string;
   size: FoodSize;
@@ -81,13 +83,24 @@ export type Symptom =
   | 'queasy'
   | 'dehydrated'
   | 'anxious'
+  | 'poor_sleep'
+  | 'brain_fog'
+  | 'sore_stomach'
   | 'fine';
 
 export type HangoverRecap = {
   rating: 1 | 2 | 3 | 4 | 5;
   symptoms: Symptom[];
   note?: string;
+  nightScore?: number;
   submittedAt: number;
+};
+
+export type BacSample = {
+  at: number;
+  bac: number;
+  projectedPeak?: number;
+  projectedSoberAt?: number;
 };
 
 export type Session = {
@@ -100,7 +113,14 @@ export type Session = {
   food: FoodEntry[];
   water: WaterEntry[];
   capBreachAttempts?: number;
+  autoEnded?: boolean;
+  firstDrinkAt?: number;
+  lastDrinkAt?: number;
   peakBac?: number;
+  peakBacAt?: number;
+  estimatedUnderLimitAt?: number;
+  estimatedSoberAt?: number;
+  bacSamples?: BacSample[];
   predictedRisk?: HangoverRisk;
   wakeAtMs?: number;
   planToDrive?: boolean;

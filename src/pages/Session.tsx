@@ -1,75 +1,56 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Button } from '@/components/ui/Button';
 import { Sheet } from '@/components/ui/Sheet';
-import { WaterAlert } from '@/components/WaterAlert';
-import { CutoffBanner } from '@/components/CutoffBanner';
-import { HangoverCard } from '@/components/HangoverCard';
-import { SessionMeta } from '@/components/SessionMeta';
-import { NightCurve } from '@/components/NightCurve';
 import { AnimatedNumber } from '@/components/AnimatedNumber';
 import { TrackerSheet, type TrackerTab } from '@/components/TrackerSheet';
-import { FAB } from '@/components/FAB';
 import { ConfirmEndSheet } from '@/components/ConfirmEndSheet';
 import { PlanTonight } from '@/components/PlanTonight';
 import { PreSession } from '@/components/PreSession';
+import { HeroStateArt } from '@/components/illustrations/EditorialArt';
 import {
   drinkCapRemaining,
   hasDrinkCap,
 } from '@/lib/drinkCap';
+import { cn } from '@/lib/utils';
 import { useProfile } from '@/store/useProfile';
 import { useSession } from '@/store/useSession';
 import type { DrinkType, Profile } from '@/types';
 import {
   BETA_TYPICAL,
-  bacCurve,
   computeBacAt,
   computeBacRange,
-  drinksUntilHangover,
-  hangoverLabel,
   hangoverRiskFor,
   finalSessionPeak,
   peakBacInWindow,
   projectedSoberAt,
-  recommendCutoff,
   riskFor,
   safeToDriveAt,
-  suggestedDrinksRemaining,
   waterBehind,
   waterDeficit,
 } from '@/lib/bac';
 import { formatClockWithDay } from '@/lib/time';
 import type { DrinkEntry, FoodEntry, RiskLevel, WaterEntry } from '@/types';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Car, Droplets, Moon, Target } from 'lucide-react';
-
-const RISK_COLOR: Record<RiskLevel, string> = {
-  green: '#3A5E4C',
-  yellow: '#B28034',
-  red: '#8C3A2A',
-};
-
-function advisoryFor(
-  risk: RiskLevel,
-  bac: number,
-  hangoverSevere: boolean,
-  planToDrive: boolean,
-  safeToDriveFutureMs: number | null,
-): { text: string; color: string } {
-  if (planToDrive && risk === 'red')
-    return { text: 'Do not drive.', color: RISK_COLOR.red };
-  if (planToDrive && risk === 'yellow')
-    return { text: 'Plan a ride.', color: RISK_COLOR.yellow };
-  // Current BAC may be low while a recent drink is still absorbing. If the
-  // projected peak will cross the 0.05 limit, don't announce "safe to drive".
-  if (planToDrive && safeToDriveFutureMs !== null)
-    return { text: 'Still absorbing. Hold off.', color: RISK_COLOR.yellow };
-  if (bac <= 0.001) return { text: 'Safe to drive.', color: RISK_COLOR.green };
-  if (hangoverSevere)
-    return { text: 'Rough morning incoming.', color: RISK_COLOR.red };
-  if (risk === 'red') return { text: 'Do not drive.', color: RISK_COLOR.red };
-  if (risk === 'yellow') return { text: 'Ease up.', color: RISK_COLOR.yellow };
-  return { text: 'Pacing well.', color: RISK_COLOR.green };
-}
+import {
+  Activity,
+  Apple,
+  Car,
+  ChevronRight,
+  CircleAlert,
+  CupSoda,
+  Droplets,
+  GlassWater,
+  Leaf,
+  Moon,
+  Plus,
+  Salad,
+  Square,
+  Target,
+  TriangleAlert,
+  Utensils,
+  Wine,
+  type LucideIcon,
+} from 'lucide-react';
 
 type PendingDrink = {
   type: DrinkType;
@@ -92,8 +73,6 @@ export function SessionPage() {
   const removeFood = useSession((s) => s.removeFood);
   const addWater = useSession((s) => s.addWater);
   const removeWater = useSession((s) => s.removeWater);
-  const setExpectedHours = useSession((s) => s.setExpectedHours);
-  const setWakeAt = useSession((s) => s.setWakeAt);
   const setPlanToDrive = useSession((s) => s.setPlanToDrive);
   const setPlannedStartAt = useSession((s) => s.setPlannedStartAt);
   const markCapBreachAttempt = useSession((s) => s.markCapBreachAttempt);
@@ -101,6 +80,7 @@ export function SessionPage() {
   const cancelSession = useSession((s) => s.cancelSession);
 
   const [trackerTab, setTrackerTab] = useState<TrackerTab | null>(null);
+  const [logChooserOpen, setLogChooserOpen] = useState(false);
   const [confirmEnd, setConfirmEnd] = useState(false);
   const [pendingDrink, setPendingDrink] = useState<PendingDrink | null>(null);
   const [capPrompt, setCapPrompt] = useState<CapPromptMode | null>(null);
@@ -122,6 +102,7 @@ export function SessionPage() {
   useEffect(() => {
     if (active) return;
     setTrackerTab(null);
+    setLogChooserOpen(false);
     setConfirmEnd(false);
     setPendingDrink(null);
     setCapPrompt(null);
@@ -134,22 +115,6 @@ export function SessionPage() {
     ? effectiveStart + active.expectedHours * 60 * 60 * 1000
     : 0;
   const wakeAtMs = active?.wakeAtMs;
-
-  const curve = useMemo(
-    () =>
-      active
-        ? bacCurve(
-            profile,
-            active.drinks,
-            active.food,
-            effectiveStart,
-            Math.max(sessionEndsAt, (wakeAtMs ?? 0) + 60_000, now + 60_000),
-            100,
-          )
-        : [],
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-    [profile, active?.drinks, active?.food, effectiveStart, sessionEndsAt, wakeAtMs],
-  );
 
   if (!active) {
     return <StartSession profile={profile} onStart={startSession} />;
@@ -245,10 +210,8 @@ export function SessionPage() {
   const planToDrive = active.planToDrive ?? false;
   const range = computeBacRange(inputs);
   const risk = riskFor(range.typical);
-  const sober = planToDrive
-    ? safeToDriveAt(inputs, 0.05)
-    : projectedSoberAt(inputs, 0);
-  const cutoff = recommendCutoff(inputs, sessionEndsAt);
+  const safeDriveAt = safeToDriveAt(inputs, 0.05);
+  const sober = projectedSoberAt(inputs, 0);
   const behind = waterBehind(active.drinks, active.water.length);
   const deficit = waterDeficit(active.drinks, active.water.length);
 
@@ -266,18 +229,6 @@ export function SessionPage() {
     Math.max(sessionEndsAt, wakeAtMs ?? sessionEndsAt),
   );
   const hRisk = hangoverRiskFor(sessionPeak, bacAtWake, deficit);
-  const hangoverDrinksLeft = wakeAtMs
-    ? drinksUntilHangover(inputs, sessionEndsAt, wakeAtMs)
-    : null;
-  const legalDrinksLeft = suggestedDrinksRemaining(inputs, sessionEndsAt, 1.4, 0.045);
-
-  const advisory = advisoryFor(
-    risk,
-    range.typical,
-    hRisk === 'severe',
-    planToDrive,
-    planToDrive ? sober : null,
-  );
 
   const dateLabel = new Date(active.startedAt)
     .toLocaleDateString(undefined, {
@@ -290,176 +241,88 @@ export function SessionPage() {
   const firstName = profile.name.split(' ')[0] || profile.name;
   const openTracker = (tab: TrackerTab) => setTrackerTab(tab);
   const capRemaining = drinkCapRemaining(active);
+  const plannedCap = active.plannedDrinkCap ?? 3;
+  const drinksRemaining = capRemaining ?? plannedCap - active.drinks.length;
+  const companion = buildSessionCompanion({
+    drinksRemaining,
+    drinksLogged: active.drinks.length,
+    plannedCap,
+    risk,
+  });
+  const drivingStatus = buildDrivingStatus({
+    bac: range.typical,
+    safeDriveAt,
+    now,
+  });
+  const soberLabel = sober ? formatClockWithDay(sober, now) : 'clear now';
+  const drivingLimitLabel = safeDriveAt
+    ? formatClockWithDay(safeDriveAt, now)
+    : range.typical <= 0.05
+      ? 'clear now'
+      : 'unknown';
+  const supportCopy = buildSupportCopy(active.water.length, active.food.length);
+  const heroGlow = buildHeroGlow(active.drinks.length, active.water.length, active.food.length, companion.tone);
 
   return (
-    <div className="max-w-md mx-auto px-5 pt-8 pb-32">
-      {/* Masthead */}
-      <header className="flex items-start justify-between gap-3">
-        <div className="min-w-0">
-          <div className="eyebrow">TONIGHT · {dateLabel}</div>
-          <h1 className="font-display text-[44px] leading-[1.02] tracking-[-0.03em] text-ink mt-1 truncate">
+    <div className="relative max-w-md mx-auto min-h-[calc(100vh-76px)] overflow-hidden pb-32">
+      <div className="absolute inset-x-0 top-0 h-[760px]" aria-hidden>
+        <HeroStateArt
+          state={companion.tone === 'over' || companion.tone === 'near' ? 'high' : 'mid'}
+          title="Night path through mountains"
+          className="h-full w-full object-cover"
+        />
+        <div className="absolute inset-0 bg-[radial-gradient(circle_at_50%_45%,rgba(99,102,241,0.18),rgba(15,23,42,0)_36%),linear-gradient(180deg,rgba(15,23,42,0.15)_0%,rgba(15,23,42,0.38)_45%,#0F172A_95%)]" />
+        <motion.div
+          key={heroGlow.key}
+          initial={{ opacity: 0.16, scale: 0.96 }}
+          animate={{ opacity: heroGlow.opacity, scale: heroGlow.scale }}
+          transition={{ duration: 0.45 }}
+          className="absolute left-[19%] right-[19%] top-[47%] h-[150px] rounded-full blur-3xl"
+          style={{ background: heroGlow.color }}
+        />
+      </div>
+
+      <main className="relative z-10 px-5 pt-8">
+        <header>
+          <div className="flex items-start justify-between gap-3">
+            <div className="font-mono text-[11px] uppercase text-ink-muted">
+              Tonight · {dateLabel}
+            </div>
+            <DrivingSegment
+              planToDrive={planToDrive}
+              onSetPlanToDrive={setPlanToDrive}
+            />
+          </div>
+          <h1 className="font-display text-[34px] leading-tight text-ink mt-2 break-words">
             Hi, <span className="italic text-accent">{firstName}.</span>
           </h1>
-        </div>
-        <TinyMenu planToDrive={planToDrive} onTogglePlan={() => setPlanToDrive(!planToDrive)} />
-      </header>
+        </header>
 
-      {/* BAC hero */}
-      <div className="mt-8">
-        <div className="flex items-baseline gap-2">
-          <div
-            className="font-display tabular-nums text-ink"
-            style={{
-              fontSize: 'clamp(96px, 30vw, 120px)',
-              fontWeight: 300,
-              lineHeight: 0.9,
-              letterSpacing: '-0.04em',
-            }}
-          >
-            <AnimatedNumber value={range.typical} decimals={3} />
-          </div>
-          <div className="eyebrow text-ink-dim mb-3 flex flex-col leading-[1.1]">
-            <span>%</span>
-            <span>BAC</span>
-          </div>
-        </div>
-        <div className="font-mono text-[11px] text-ink-dim mt-[-4px]">
-          range {range.low.toFixed(3)}–{range.high.toFixed(3)} · β typical
-        </div>
-        <motion.div
-          key={advisory.text}
-          initial={{ opacity: 0, y: 4 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.22 }}
-          className="flex items-center gap-2 mt-4"
-        >
-          <span
-            className="w-1.5 h-1.5 rounded-full"
-            style={{
-              background: advisory.color,
-              boxShadow: `0 0 10px ${advisory.color}`,
-            }}
-          />
-          <span
-            className="font-display italic"
-            style={{ fontSize: 20, color: advisory.color }}
-          >
-            {advisory.text}
-          </span>
-        </motion.div>
-      </div>
+        <SessionCompanionHero companion={companion} />
 
-      {capRemaining !== null && (
-        <div className="mt-5">
-          <DrinkCapCard
-            plannedDrinkCap={active.plannedDrinkCap!}
-            drinksLogged={active.drinks.length}
-            remaining={capRemaining}
-          />
-        </div>
-      )}
+        <SessionActionDock
+          onQuickWater={addWater}
+          onOpenLog={() => setLogChooserOpen(true)}
+          onEnd={() => setConfirmEnd(true)}
+          waterPulse={behind}
+        />
 
-      {/* Night curve card */}
-      <div className="mt-5 rounded-[20px] bg-bg-card border border-line shadow-card px-3 pt-4 pb-2">
-        <div className="flex items-center justify-between px-1 mb-1">
-          <div className="eyebrow">NIGHT CURVE</div>
-          <div className="font-mono text-[10px] text-ink-dim">
-            peak · {sessionPeak.toFixed(3)}
-          </div>
-        </div>
-        <NightCurve
+        <BacCompanionCard
           range={range}
-          risk={risk}
-          curve={curve}
-          now={now}
-          sessionStart={effectiveStart}
-          sessionEnd={sessionEndsAt}
-          wakeAt={wakeAtMs}
+          drivingStatus={drivingStatus}
+          soberLabel={soberLabel}
+          drivingLimitLabel={drivingLimitLabel}
+          planToDrive={planToDrive}
+          supportCopy={supportCopy}
           peak={sessionPeak}
+          tone={companion.tone}
         />
-      </div>
 
-      {/* Stat tiles */}
-      <div className="grid grid-cols-2 gap-2.5 mt-3">
-        {planToDrive ? (
-          <StatTile
-            title="UNDER 0.05"
-            big={legalDrinksLeft.toString()}
-            sub={`drink${legalDrinksLeft === 1 ? '' : 's'} left`}
-            flavor="driving cap"
-          />
-        ) : (
-          <StatTile
-            title="PROJECTED PEAK"
-            big={sessionPeak.toFixed(3)}
-            sub="max BAC tonight"
-            flavor="with β 0.15"
-          />
-        )}
-        <StatTile
-          title={planToDrive ? 'ABLE TO DRIVE' : 'SOBER BY'}
-          big={sober ? formatClockWithDay(sober, now) : (planToDrive ? 'clear' : '—')}
-          sub={planToDrive ? 'est. ability to drive' : 'est. clearance'}
-          flavor={planToDrive ? 'BAC < 0.05%' : '0.00% BAC'}
-        />
-      </div>
-
-      {!planToDrive && (
-        <div className="mt-3">
-          <HangoverCard
-            risk={hRisk}
-            label={hangoverLabel(hRisk)}
-            drinksLeft={hangoverDrinksLeft}
-            wakeAtMs={wakeAtMs}
-            now={now}
-            bacAtWake={bacAtWake}
-          />
+        <div className="mt-4 grid grid-cols-3 gap-2">
+          <SessionMiniStat label="Logged" value={active.drinks.length.toString()} />
+          <SessionMiniStat label="Plan" value={plannedCap.toString()} />
+          <SessionMiniStat label="Water" value={active.water.length.toString()} />
         </div>
-      )}
-
-      {planToDrive && risk !== 'green' && (
-        <motion.div
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          className="mt-3 rounded-[20px] p-4 bg-bg-card border shadow-card"
-          style={{ borderColor: RISK_COLOR.red }}
-        >
-          <div className="eyebrow" style={{ color: RISK_COLOR.red }}>
-            DO NOT DRIVE
-          </div>
-          <div className="font-display text-[20px] leading-tight text-ink mt-1">
-            {risk === 'red'
-              ? 'You are over the 0.05 limit. Get a ride.'
-              : 'Approaching the 0.05 limit. Plan a ride now.'}
-          </div>
-          <div className="font-mono text-[11px] text-ink-dim mt-2">
-            This app is not a breathalyzer. The only safe BAC to drive is 0.00.
-          </div>
-        </motion.div>
-      )}
-
-      {behind && (
-        <div className="mt-3">
-          <WaterAlert deficit={deficit} onAdd={() => openTracker('water')} />
-        </div>
-      )}
-
-      {cutoff.kind !== 'no-drinks' && (
-        <div className="mt-3">
-          <CutoffBanner result={cutoff} now={now} />
-        </div>
-      )}
-
-      <div className="mt-3">
-        <SessionMeta
-          startedAt={effectiveStart}
-          expectedHours={active.expectedHours}
-          wakeAtMs={wakeAtMs}
-          now={now}
-          onChangeHours={setExpectedHours}
-          onChangeWake={setWakeAt}
-        />
-      </div>
 
       <LogList
         profile={profile}
@@ -471,18 +334,31 @@ export function SessionPage() {
         onRemoveFood={removeFood}
       />
 
-      <button
-        type="button"
-        onClick={() => setConfirmEnd(true)}
-        className="w-full mt-6 py-3.5 font-mono text-[11px] tracking-[0.18em] uppercase text-ink-dim hover:text-ink transition"
-      >
-        End session
-      </button>
-      <p className="font-mono text-[10px] text-ink-dim text-center -mt-1">
-        estimates only. not a breathalyzer.
-      </p>
+        <p className="font-mono text-[10px] text-ink-dim text-center mt-5">
+          Estimates only. Not a breathalyzer. Do not rely on this to drive.
+        </p>
+      </main>
 
-      <FAB onClick={() => openTracker('drink')} pulse={behind} />
+      <LogChooserSheet
+        open={logChooserOpen}
+        onClose={() => setLogChooserOpen(false)}
+        onDrink={() => {
+          setLogChooserOpen(false);
+          openTracker('drink');
+        }}
+        onWater={() => {
+          addWater();
+          setLogChooserOpen(false);
+        }}
+        onSnack={() => {
+          addFood('snack');
+          setLogChooserOpen(false);
+        }}
+        onMeal={() => {
+          addFood('meal');
+          setLogChooserOpen(false);
+        }}
+      />
 
       <TrackerSheet
         open={trackerTab !== null}
@@ -547,85 +423,539 @@ export function SessionPage() {
   );
 }
 
-function TinyMenu({
+type CompanionTone = 'on-track' | 'mid' | 'near' | 'over';
+
+type SessionCompanion = {
+  tone: CompanionTone;
+  drinksRemaining: number;
+  displayValue: number;
+  unit: string;
+  message: string;
+  accent: string;
+  overPlan: boolean;
+};
+
+type DrivingStatus = {
+  tone: 'safe' | 'soon' | 'unsafe';
+  label: string;
+  detail: string;
+  accent: string;
+  icon: LucideIcon;
+};
+
+function buildSessionCompanion({
+  drinksRemaining,
+  drinksLogged,
+  plannedCap,
+  risk,
+}: {
+  drinksRemaining: number;
+  drinksLogged: number;
+  plannedCap: number;
+  risk: RiskLevel;
+}): SessionCompanion {
+  const roundedRemaining = Math.round(drinksRemaining);
+  const overPlan = roundedRemaining < 0;
+
+  if (overPlan || risk === 'red') {
+    return {
+      tone: 'over',
+      drinksRemaining,
+      displayValue: Math.max(0, roundedRemaining),
+      unit: '',
+      message: 'Slow it down — give yourself time',
+      accent: '#EF4444',
+      overPlan: true,
+    };
+  }
+
+  if (roundedRemaining <= 1 || risk === 'yellow') {
+    return {
+      tone: 'near',
+      drinksRemaining,
+      displayValue: Math.max(0, roundedRemaining),
+      unit: roundedRemaining === 1 ? 'drink left' : 'drinks left',
+      message: roundedRemaining === 1 ? 'Last one — stay steady' : 'Pause here — stay steady',
+      accent: '#F59E0B',
+      overPlan: false,
+    };
+  }
+
+  if (drinksLogged > 0 && roundedRemaining < plannedCap) {
+    return {
+      tone: 'mid',
+      drinksRemaining,
+      displayValue: roundedRemaining,
+      unit: 'drinks left',
+      message: 'Good pace — keep it steady',
+      accent: '#22C55E',
+      overPlan: false,
+    };
+  }
+
+  return {
+    tone: 'on-track',
+    drinksRemaining,
+    displayValue: Math.max(0, roundedRemaining),
+    unit: 'drinks left',
+    message: 'You’re starting steady',
+    accent: '#22C55E',
+    overPlan: false,
+  };
+}
+
+function buildDrivingStatus({
+  bac,
+  safeDriveAt,
+  now,
+}: {
+  bac: number;
+  safeDriveAt: number | null;
+  now: number;
+}): DrivingStatus {
+  if (bac > 0.05) {
+    return {
+      tone: 'unsafe',
+      label: 'Not safe to drive',
+      detail: safeDriveAt
+        ? `Under 0.05 after ${formatClockWithDay(safeDriveAt, now)}`
+        : 'BAC over 0.05%',
+      accent: '#EF4444',
+      icon: TriangleAlert,
+    };
+  }
+
+  if (bac >= 0.04 || safeDriveAt !== null) {
+    return {
+      tone: 'soon',
+      label: 'Over 0.05 soon',
+      detail: 'Approaching limit',
+      accent: '#F59E0B',
+      icon: CircleAlert,
+    };
+  }
+
+  return {
+    tone: 'safe',
+    label: 'Safe to drive',
+    detail: 'BAC under 0.05%',
+    accent: '#22C55E',
+    icon: Car,
+  };
+}
+
+function buildSupportCopy(waterCount: number, foodCount: number): string {
+  if (waterCount > 0 && foodCount > 0) return 'food slows BAC; water logged';
+  if (foodCount > 0) return 'food slows BAC curve';
+  if (waterCount > 0) return 'water logged; BAC unchanged';
+  return 'food affects BAC; water helps pacing';
+}
+
+function buildHeroGlow(
+  drinks: number,
+  water: number,
+  food: number,
+  tone: CompanionTone,
+) {
+  const support = Math.min(0.14, water * 0.015 + food * 0.05);
+  const intensity = Math.max(0.18, Math.min(0.56, 0.24 + drinks * 0.07 - support));
+  const toneColor =
+    tone === 'over'
+      ? 'rgba(239,68,68,0.72)'
+      : tone === 'near'
+        ? 'rgba(245,158,11,0.62)'
+        : 'rgba(99,102,241,0.72)';
+
+  return {
+    key: `${drinks}-${water}-${food}-${tone}`,
+    color: toneColor,
+    opacity: intensity,
+    scale: 1 + Math.min(0.22, drinks * 0.035),
+  };
+}
+
+function DrivingSegment({
   planToDrive,
-  onTogglePlan,
+  onSetPlanToDrive,
 }: {
   planToDrive: boolean;
-  onTogglePlan: () => void;
+  onSetPlanToDrive: (next: boolean) => void;
 }) {
-  const [open, setOpen] = useState(false);
   return (
-    <div className="relative shrink-0">
+    <div className="flex rounded-full border border-line bg-bg/45 p-1 backdrop-blur-md">
       <button
         type="button"
-        onClick={() => setOpen((v) => !v)}
-        aria-label={planToDrive ? 'Driving mode on — menu' : 'Night mode on — menu'}
-        aria-expanded={open}
-        className={`relative h-auto min-h-[42px] px-2.5 py-1.5 rounded-[14px] border flex items-center gap-1.5 transition ${
+        onClick={() => onSetPlanToDrive(true)}
+        className={cn(
+          'min-h-[36px] rounded-full px-3 text-[12px] font-semibold transition inline-flex items-center gap-1.5',
           planToDrive
-            ? 'bg-risk-red/10 border-risk-red/40 text-risk-red hover:bg-risk-red/15'
-            : 'bg-bg-card border-line text-ink hover:bg-bg-elev'
-        }`}
-      >
-        {planToDrive ? (
-          <Car className="h-[18px] w-[18px]" strokeWidth={2} />
-        ) : (
-          <Moon className="h-[18px] w-[18px]" strokeWidth={1.8} />
+            ? 'bg-risk-red/15 text-risk-red ring-1 ring-risk-red/45'
+            : 'text-ink-muted hover:text-ink',
         )}
-        <span
-          className={`font-mono text-[10px] uppercase tracking-[0.14em] ${
-            planToDrive ? 'text-risk-red' : 'text-ink-dim'
-          }`}
-        >
-          {planToDrive ? 'Drive' : 'Night'}
-        </span>
+      >
+        <Car className="h-4 w-4" strokeWidth={1.9} />
+        Driving
       </button>
-      <AnimatePresence>
-        {open && (
-          <>
-            <button
-              type="button"
-              aria-hidden
-              onClick={() => setOpen(false)}
-              className="fixed inset-0 z-30 cursor-default"
-              tabIndex={-1}
-            />
-            <motion.div
-              initial={{ opacity: 0, y: -4 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: -4 }}
-              transition={{ duration: 0.15 }}
-              className="absolute right-0 top-[calc(100%+8px)] z-40 min-w-[200px] rounded-2xl border border-line bg-bg-card shadow-card-lg p-1.5"
-            >
-              <button
-                type="button"
-                onClick={() => {
-                  onTogglePlan();
-                  setOpen(false);
-                }}
-                className="w-full flex items-center justify-between gap-3 px-3 py-2.5 rounded-xl text-left hover:bg-bg-elev transition"
-              >
-                <span className="flex items-center gap-2 text-sm text-ink">
-                  {planToDrive ? (
-                    <Car className="h-4 w-4" />
-                  ) : (
-                    <Moon className="h-4 w-4" />
-                  )}
-                  Plan to drive
-                </span>
-                <span
-                  className={`font-mono text-[10px] uppercase tracking-wider ${
-                    planToDrive ? 'text-risk-red' : 'text-ink-dim'
-                  }`}
-                >
-                  {planToDrive ? 'ON' : 'OFF'}
-                </span>
-              </button>
-            </motion.div>
-          </>
+      <button
+        type="button"
+        onClick={() => onSetPlanToDrive(false)}
+        className={cn(
+          'min-h-[36px] rounded-full px-3 text-[12px] font-semibold transition inline-flex items-center gap-1.5',
+          !planToDrive
+            ? 'bg-bg-card text-ink ring-1 ring-line-2'
+            : 'text-ink-muted hover:text-ink',
+        )}
+      >
+        <Moon className="h-4 w-4" strokeWidth={1.9} />
+        No driving
+      </button>
+    </div>
+  );
+}
+
+function SessionCompanionHero({ companion }: { companion: SessionCompanion }) {
+  return (
+    <section className="min-h-[214px] flex flex-col items-center justify-center text-center">
+      <AnimatePresence mode="wait">
+        {companion.overPlan ? (
+          <motion.div
+            key="over"
+            initial={{ opacity: 0, y: 8, scale: 0.96 }}
+            animate={{ opacity: 1, y: 0, scale: 1 }}
+            exit={{ opacity: 0, y: -8, scale: 0.96 }}
+            transition={{ duration: 0.22 }}
+            className="flex flex-col items-center"
+          >
+            <div className="grid h-20 w-20 place-items-center rounded-full border border-risk-red bg-risk-red/10 text-risk-red shadow-[0_0_36px_rgba(239,68,68,0.42)]">
+              <CircleAlert className="h-10 w-10" strokeWidth={1.8} />
+            </div>
+            <h2 className="font-display text-[32px] leading-tight text-ink mt-4">
+              You’re past<br />your plan
+            </h2>
+          </motion.div>
+        ) : (
+          <motion.div
+            key={companion.displayValue}
+            initial={{ opacity: 0, y: 8, scale: 0.96 }}
+            animate={{ opacity: 1, y: 0, scale: 1 }}
+            exit={{ opacity: 0, y: -8, scale: 0.96 }}
+            transition={{ duration: 0.22 }}
+          >
+            <div className="font-display tabular-nums text-[104px] leading-none text-ink">
+              <AnimatedNumber value={companion.displayValue} decimals={0} />
+            </div>
+            <div className="font-display text-[28px] leading-none text-ink -mt-1">
+              {companion.unit}
+            </div>
+          </motion.div>
         )}
       </AnimatePresence>
+
+      <motion.div
+        key={companion.message}
+        initial={{ opacity: 0, y: 4 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.2 }}
+        className="mt-3 inline-flex items-center justify-center gap-2 text-[16px] font-semibold"
+        style={{ color: companion.accent }}
+      >
+        <span
+          className="h-2.5 w-2.5 rounded-full"
+          style={{
+            background: companion.accent,
+            boxShadow: `0 0 16px ${companion.accent}`,
+          }}
+        />
+        {companion.message}
+      </motion.div>
+    </section>
+  );
+}
+
+function SessionActionDock({
+  onQuickWater,
+  onOpenLog,
+  onEnd,
+  waterPulse,
+}: {
+  onQuickWater: () => void;
+  onOpenLog: () => void;
+  onEnd: () => void;
+  waterPulse: boolean;
+}) {
+  return (
+    <div className="grid grid-cols-[1fr,96px,1fr] items-end gap-3">
+      <ActionButton
+        label="Quick water"
+        icon={Droplets}
+        onClick={onQuickWater}
+        pulse={waterPulse}
+      />
+      <button
+        type="button"
+        onClick={onOpenLog}
+        aria-label="Log something"
+        className="mx-auto grid h-[78px] w-[78px] place-items-center rounded-full border border-accent/55 bg-[linear-gradient(135deg,#6366F1_0%,#7C3AED_100%)] text-white shadow-[0_0_40px_rgba(99,102,241,0.65)] transition active:scale-[1.04]"
+      >
+        <Plus className="h-10 w-10" strokeWidth={1.8} />
+      </button>
+      <ActionButton label="End session" icon={Square} onClick={onEnd} />
+    </div>
+  );
+}
+
+function ActionButton({
+  label,
+  icon: Icon,
+  onClick,
+  pulse = false,
+}: {
+  label: string;
+  icon: LucideIcon;
+  onClick: () => void;
+  pulse?: boolean;
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      className="flex min-h-[74px] flex-col items-center justify-end gap-1.5 text-center text-[13px] text-ink"
+    >
+      <span
+        className={cn(
+          'grid h-[54px] w-[54px] place-items-center rounded-full border border-line bg-bg/55 text-ink backdrop-blur-md transition',
+          pulse && 'border-sky/35 text-sky shadow-[0_0_22px_rgba(56,189,248,0.28)] animate-breathe',
+        )}
+      >
+        <Icon className="h-6 w-6" strokeWidth={1.8} />
+      </span>
+      <span>{label}</span>
+    </button>
+  );
+}
+
+function BacCompanionCard({
+  range,
+  drivingStatus,
+  soberLabel,
+  drivingLimitLabel,
+  planToDrive,
+  supportCopy,
+  peak,
+  tone,
+}: {
+  range: ReturnType<typeof computeBacRange>;
+  drivingStatus: DrivingStatus;
+  soberLabel: string;
+  drivingLimitLabel: string;
+  planToDrive: boolean;
+  supportCopy: string;
+  peak: number;
+  tone: CompanionTone;
+}) {
+  const StatusIcon = drivingStatus.icon;
+  const progress = Math.max(8, Math.min(100, (range.typical / 0.08) * 100));
+  const progressColor =
+    tone === 'over' ? '#EF4444' : tone === 'near' ? '#F59E0B' : '#8B5CF6';
+  const timingLabel = planToDrive ? 'Below 0.05 by' : 'Sober by';
+  const timingValue = planToDrive ? drivingLimitLabel : soberLabel;
+  const supportTone = supportCopy.includes('food') ? '#22C55E' : '#9FB0C3';
+
+  return (
+    <section className="mt-3 rounded-[22px] border border-line-2 bg-bg-card/82 p-4 shadow-card-lg backdrop-blur-md">
+      <div className="grid grid-cols-[1.15fr,0.85fr] gap-4">
+        <div>
+          <div className="font-mono text-[11px] uppercase text-ink-muted">BAC now</div>
+          <div className="mt-1 flex items-end gap-1.5">
+            <AnimatedNumber
+              value={range.typical}
+              decimals={3}
+              className="font-display tabular-nums text-[36px] leading-none text-ink"
+            />
+            <span className="pb-1 text-[13px] text-ink-muted">% BAC</span>
+          </div>
+          <div
+            className="mt-3 inline-flex items-center gap-1.5 text-[12px] font-semibold"
+            style={{ color: supportTone }}
+          >
+            <Leaf className="h-3.5 w-3.5" strokeWidth={1.8} />
+            {supportCopy}
+          </div>
+        </div>
+
+        <div className="border-l border-line pl-4">
+          <div
+            className="inline-flex items-center gap-1.5 text-[12px] font-semibold"
+            style={{ color: drivingStatus.accent }}
+          >
+            <StatusIcon className="h-4 w-4" strokeWidth={1.9} />
+            {drivingStatus.label}
+          </div>
+          <div className="mt-1 text-[11px] leading-snug text-ink-muted">
+            {drivingStatus.detail}
+          </div>
+          <div className="mt-4 text-[12px] text-ink-muted">{timingLabel}</div>
+          <div className="mt-1 text-[19px] font-semibold text-ink">{timingValue}</div>
+        </div>
+      </div>
+
+      <div className="mt-4 h-1.5 overflow-hidden rounded-full bg-white/10">
+        <motion.div
+          key={progressColor}
+          initial={{ width: 0 }}
+          animate={{ width: `${progress}%` }}
+          transition={{ duration: 0.45 }}
+          className="h-full rounded-full"
+          style={{
+            background: `linear-gradient(90deg,${progressColor},#A78BFA)`,
+            boxShadow: `0 0 18px ${progressColor}`,
+          }}
+        />
+      </div>
+      <div className="mt-2 flex items-center justify-between font-mono text-[10px] text-ink-dim">
+        <span>range {range.low.toFixed(3)}–{range.high.toFixed(3)}</span>
+        <span>peak {peak.toFixed(3)}</span>
+      </div>
+    </section>
+  );
+}
+
+function SessionMiniStat({ label, value }: { label: string; value: string }) {
+  return (
+    <div className="rounded-[16px] border border-line bg-bg-card/72 px-3 py-2.5 text-center backdrop-blur-md">
+      <div className="font-mono text-[9px] uppercase text-ink-dim">{label}</div>
+      <div className="font-display text-[23px] leading-none text-ink mt-1">{value}</div>
+    </div>
+  );
+}
+
+function LogChooserSheet({
+  open,
+  onClose,
+  onDrink,
+  onWater,
+  onSnack,
+  onMeal,
+}: {
+  open: boolean;
+  onClose: () => void;
+  onDrink: () => void;
+  onWater: () => void;
+  onSnack: () => void;
+  onMeal: () => void;
+}) {
+  return (
+    <Sheet open={open} onClose={onClose}>
+      <div className="font-mono text-[11px] uppercase text-accent">Log something</div>
+      <h2 className="font-display text-[29px] leading-tight text-ink mt-2">
+        Add what changed.
+      </h2>
+      <p className="text-[14px] text-ink-muted mt-1">
+        Water, snacks, and meals update the session instantly.
+      </p>
+
+      <div className="mt-5 space-y-2.5">
+        <LogChoiceRow
+          icon={Wine}
+          label="Drink"
+          detail="Wine, beer, cocktail or spirit"
+          accent="#F59E0B"
+          onClick={onDrink}
+        />
+        <LogChoiceRow
+          icon={GlassWater}
+          label="Water"
+          detail="8 oz / 250 ml"
+          accent="#38BDF8"
+          onClick={onWater}
+        />
+        <LogChoiceRow
+          icon={Apple}
+          label="Snack"
+          detail="Light snack"
+          accent="#22C55E"
+          onClick={onSnack}
+        />
+        <LogChoiceRow
+          icon={Utensils}
+          label="Meal"
+          detail="Full meal"
+          accent="#22C55E"
+          onClick={onMeal}
+        />
+      </div>
+
+      <div className="mt-5 rounded-[20px] border border-line bg-bg-elev/60 p-4">
+        <div className="font-mono text-[10px] uppercase text-accent">How it affects your BAC</div>
+        <div className="mt-3 grid gap-2.5">
+          <ImpactRow icon={Activity} label="Drinks increase your BAC" detail="Based on amount, type, and time." accent="#8B5CF6" />
+          <ImpactRow icon={CupSoda} label="Water helps pacing" detail="Logged for hydration; it does not lower BAC." accent="#38BDF8" />
+          <ImpactRow icon={Salad} label="Food affects BAC" detail="Slows alcohol absorption in the estimate." accent="#22C55E" />
+        </div>
+      </div>
+    </Sheet>
+  );
+}
+
+function LogChoiceRow({
+  icon: Icon,
+  label,
+  detail,
+  accent,
+  onClick,
+}: {
+  icon: LucideIcon;
+  label: string;
+  detail: string;
+  accent: string;
+  onClick: () => void;
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      className="w-full rounded-[18px] border border-line bg-bg-elev/70 p-3 text-left transition hover:bg-bg-elev"
+    >
+      <div className="flex items-center gap-3">
+        <span
+          className="grid h-12 w-12 shrink-0 place-items-center rounded-2xl bg-bg/50"
+          style={{ color: accent }}
+        >
+          <Icon className="h-6 w-6" strokeWidth={1.8} />
+        </span>
+        <span className="min-w-0 flex-1">
+          <span className="block text-[16px] font-semibold text-ink">{label}</span>
+          <span className="block text-[13px] text-ink-muted mt-0.5">{detail}</span>
+        </span>
+        <ChevronRight className="h-5 w-5 text-ink-dim" strokeWidth={1.8} />
+      </div>
+    </button>
+  );
+}
+
+function ImpactRow({
+  icon: Icon,
+  label,
+  detail,
+  accent,
+}: {
+  icon: LucideIcon;
+  label: string;
+  detail: string;
+  accent: string;
+}) {
+  return (
+    <div className="flex items-center gap-3">
+      <span
+        className="grid h-10 w-10 shrink-0 place-items-center rounded-2xl bg-bg/45"
+        style={{ color: accent }}
+      >
+        <Icon className="h-5 w-5" strokeWidth={1.8} />
+      </span>
+      <span>
+        <span className="block text-[14px] font-semibold text-ink">{label}</span>
+        <span className="block text-[12px] text-ink-muted">{detail}</span>
+      </span>
     </div>
   );
 }
@@ -749,112 +1079,9 @@ function LogList({
   );
 }
 
-function StatTile({
-  title,
-  big,
-  sub,
-  flavor,
-}: {
-  title: string;
-  big: string;
-  sub: string;
-  flavor: string;
-}) {
-  return (
-    <div className="rounded-[20px] p-3.5 bg-bg-card border border-line shadow-card">
-      <div className="eyebrow">{title}</div>
-      <div className="font-display tabular-nums text-ink text-[28px] leading-none mt-1.5">
-        {big}
-      </div>
-      <div className="text-[12px] text-ink-muted mt-1">{sub}</div>
-      <div className="font-mono text-[10px] text-ink-dim mt-0.5">{flavor}</div>
-    </div>
-  );
-}
-
-function DrinkCapCard({
-  plannedDrinkCap,
-  drinksLogged,
-  remaining,
-}: {
-  plannedDrinkCap: number;
-  drinksLogged: number;
-  remaining: number;
-}) {
-  const overBy = Math.max(0, -remaining);
-  const atCap = remaining === 0;
-  const tone =
-    overBy > 0
-      ? {
-          accent: '#8C3A2A',
-          bg: 'rgba(140,58,42,0.08)',
-          border: 'rgba(140,58,42,0.22)',
-          copy: `Past your ${plannedDrinkCap}-drink cap. Slow down and switch to water.`,
-        }
-      : atCap
-        ? {
-            accent: '#B28034',
-            bg: 'rgba(178,128,52,0.08)',
-            border: 'rgba(178,128,52,0.22)',
-            copy: `At your cap. The next drink will trigger a pause.`,
-          }
-        : {
-            accent: '#3A5E4C',
-            bg: 'rgba(58,94,76,0.08)',
-            border: 'rgba(58,94,76,0.2)',
-            copy: `${drinksLogged} logged so far. Stay on water between rounds.`,
-          };
-  const big = overBy > 0 ? overBy.toString() : remaining.toString();
-  const label = overBy > 0 ? 'over' : 'left';
-
-  return (
-    <motion.div
-      initial={{ opacity: 0, y: 6 }}
-      animate={{ opacity: 1, y: 0 }}
-      className="rounded-[24px] border p-4 shadow-card"
-      style={{ borderColor: tone.border, background: tone.bg }}
-    >
-      <div className="flex items-start justify-between gap-3">
-        <div>
-          <div className="eyebrow" style={{ color: tone.accent }}>
-            DRINKS REMAINING
-          </div>
-          <div className="flex items-end gap-2 mt-2">
-            <div
-              className="font-display tabular-nums leading-none"
-              style={{ fontSize: 64, color: tone.accent, fontWeight: 300 }}
-            >
-              {big}
-            </div>
-            <div
-              className="font-mono text-[11px] uppercase tracking-[0.18em] mb-2"
-              style={{ color: tone.accent }}
-            >
-              {label}
-            </div>
-          </div>
-          <p className="font-display text-[17px] leading-snug text-ink mt-1 max-w-[18rem]">
-            {tone.copy}
-          </p>
-        </div>
-        <div className="rounded-full border border-line bg-white/80 px-3 py-1.5 font-mono text-[10px] uppercase tracking-[0.18em] text-ink-muted shrink-0">
-          {drinksLogged}/{plannedDrinkCap} logged
-        </div>
-      </div>
-      <div className="grid grid-cols-2 gap-2 mt-4">
-        <CapMiniStat label="CAP" value={plannedDrinkCap.toString()} />
-        <CapMiniStat
-          label={overBy > 0 ? 'OVER BY' : 'NEXT'}
-          value={overBy > 0 ? overBy.toString() : remaining === 0 ? 'Pause' : 'Water'}
-        />
-      </div>
-    </motion.div>
-  );
-}
-
 function CapMiniStat({ label, value }: { label: string; value: string }) {
   return (
-    <div className="rounded-[16px] border border-line/70 bg-white/65 px-3 py-2.5">
+    <div className="rounded-[16px] border border-line/70 bg-bg-elev/65 px-3 py-2.5">
       <div className="font-mono text-[9px] uppercase tracking-[0.18em] text-ink-dim">
         {label}
       </div>
@@ -891,7 +1118,7 @@ function CapPausePrompt({
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           exit={{ opacity: 0 }}
-          className="fixed inset-0 z-[70] bg-[linear-gradient(180deg,#F7F1E7_0%,#F1E5D1_100%)]"
+          className="fixed inset-0 z-[70] bg-[linear-gradient(180deg,#111C31_0%,#0F172A_100%)]"
         >
           <div
             className="max-w-md mx-auto min-h-full px-5 flex flex-col justify-between"
@@ -912,7 +1139,7 @@ function CapPausePrompt({
                 Wait 15 minutes, drink some water, then see how you feel.
               </p>
 
-              <div className="mt-6 rounded-[24px] border border-line bg-white/80 p-4 shadow-card">
+              <div className="mt-6 rounded-[24px] border border-line bg-bg-elev/80 p-4 shadow-card">
                 <div className="eyebrow">ABOUT TO LOG</div>
                 <div className="font-display text-[24px] text-ink mt-2 leading-tight">
                   {pendingDrink.label}

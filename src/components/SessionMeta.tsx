@@ -196,7 +196,7 @@ function WakeEditor({
         type="datetime-local"
         value={draft}
         onChange={(e) => setDraft(e.target.value)}
-        className="w-full h-11 px-3 rounded-xl bg-white border border-line text-ink focus:border-accent focus:outline-none focus:ring-4 focus:ring-accent/15"
+        className="w-full h-11 px-3 rounded-xl bg-bg-elev border border-line text-ink focus:border-accent focus:outline-none focus:ring-4 focus:ring-accent/15"
       />
       <div className="flex gap-2">
         <Button
@@ -249,7 +249,7 @@ function HoursEditor({
         step="0.5"
         value={draft}
         onChange={(e) => setDraft(e.target.value)}
-        className="flex-1 h-11 px-3 rounded-xl bg-white border border-line text-ink tabular-nums focus:border-accent focus:outline-none focus:ring-4 focus:ring-accent/15"
+        className="flex-1 h-11 px-3 rounded-xl bg-bg-elev border border-line text-ink tabular-nums focus:border-accent focus:outline-none focus:ring-4 focus:ring-accent/15"
       />
       <Button
         size="sm"

@@ -64,6 +64,9 @@ const SYMPTOM_LABEL: Record<Symptom, string> = {
   queasy: 'Queasy',
   dehydrated: 'Dehydrated',
   anxious: 'Anxious',
+  poor_sleep: 'Poor sleep',
+  brain_fog: 'Brain fog',
+  sore_stomach: 'Sore stomach',
   fine: 'Fine',
 };
 
